@@ -22,7 +22,7 @@ export const InfoModal: React.FC<InfoModalProps> = ({ isOpen, onClose }) => {
             </div>
             <div>
               <h2 className="text-lg font-bold text-white">
-                Tabla Periódica Didáctica e Interactiva
+                XTableLab
               </h2>
               <span className="text-xs text-slate-400 font-mono">
                 Herramienta Universitaria de Aprendizaje Cuántico
