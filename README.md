@@ -153,6 +153,6 @@ Open [http://localhost:5173](http://localhost:5173) in your browser.
 
 <div align="center">
 
-Hecho con ❤️ para estudiantes de química · Made with ❤️ for chemistry students
+Hecho con ❤️ para alguien especial  · Made with ❤️ for someone special
 
 </div>
