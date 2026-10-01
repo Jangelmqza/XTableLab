@@ -262,6 +262,11 @@ export function App() {
               <span className="text-slate-400 font-medium">Jose Angel Márquez Ramírez</span>
               {' '}— Todos los derechos reservados.
             </span>
+            <span className="text-slate-400 font-medium">  
+                Sugerencias, comentarios o reportes de errores: <a href="mailto:joseangelmarquez857@gmail.com" className="text-slate-400 hover:text-slate-300 underline">
+                  joseangelmarquez857@gmail.com
+                </a>
+            </span>
             <span className="text-slate-700 italic">
               XTableLab · Datos: IUPAC & NIST
             </span>
