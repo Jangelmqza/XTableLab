@@ -263,7 +263,7 @@ export function App() {
               {' '}— Todos los derechos reservados.
             </span>
             <span className="text-slate-700 italic">
-              Tabla Periódica Didáctica e Interactiva · Datos: IUPAC & NIST
+              XTableLab · Datos: IUPAC & NIST
             </span>
           </div>
         </div>
