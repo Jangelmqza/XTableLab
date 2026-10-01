@@ -91,8 +91,8 @@ export const BohrModel: React.FC<BohrModelProps> = ({ element, size = 260 }) => 
             filter="drop-shadow(0 0 10px rgba(244, 63, 94, 0.6))"
           />
           <text
-            cx={center}
-            cy={center - 2}
+            x={center}
+            y={center - 2}
             textAnchor="middle"
             fill="#ffffff"
             fontSize="10"
@@ -102,8 +102,8 @@ export const BohrModel: React.FC<BohrModelProps> = ({ element, size = 260 }) => 
             {element.symbol}
           </text>
           <text
-            cx={center}
-            cy={center + 10}
+            x={center}
+            y={center + 10}
             textAnchor="middle"
             fill="#fecdd3"
             fontSize="7.5"
