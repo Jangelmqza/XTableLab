@@ -9,10 +9,10 @@
 ## Control y Seguimiento del Proyecto
 
 ### Tareas pendientes
-- [ ] Optimizar experiencia responsive para móvil y modo sin conexión (PWA)
 - [ ] Módulo de visualización tridimensional de moléculas (VSEPR / Three.js)
 
 ### Tareas realizadas
+- [x] Optimizar experiencia responsive para móvil (vista Fichas, scroll asistido, touch) y modo sin conexión (PWA instalable, Service Worker y WebApp Manifest)
 - [x] Lectura, análisis del plan de trabajo y estructuración del sistema de tareas en `plan-tabla-periodica.md`
 - [x] Inicializar proyecto frontend con stack completo (React 19 + Vite 8 + Tailwind CSS v4 + Lucide Icons)
 - [x] Estructurar dataset completo y verificado de los 118 elementos periódicos (IUPAC / NIST) con datos atómicos, capas de Bohr, constates fisicoquímicas, resúmenes didácticos y análisis cuántico universitario en español
