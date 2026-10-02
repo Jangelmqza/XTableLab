@@ -1,4 +1,4 @@
-﻿import { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import type { ElementData, ElementCategory, ElementBlock, TrendProperty } from './types/element';
 import type { TableDisplayMode } from './components/PeriodicTable/ElementCard';
 import { ELEMENTS_DATA } from './data/elementsData';
@@ -13,6 +13,8 @@ import { ElectronConfigSimulator } from './components/Simulators/ElectronConfigS
 import { ChemicalBondSimulator } from './components/Simulators/ChemicalBondSimulator';
 import { QuizModule } from './components/Quiz/QuizModule';
 import { InfoModal } from './components/InfoModal/InfoModal';
+import { APP_VERSION, APP_BUILD_DATE } from './version';
+
 
 export function App() {
   const [activeTab, setActiveTab] = useState<AppTab>('table');
@@ -246,7 +248,7 @@ export function App() {
               <span>•</span>
               <span>Simuladores Cuánticos</span>
               <span>•</span>
-              <span>Bohr & Aufbau</span>
+              <span>Bohr &amp; Aufbau</span>
               <span>•</span>
               <span>Evaluación Interactiva</span>
             </div>
@@ -255,20 +257,34 @@ export function App() {
           {/* Divider */}
           <div className="w-full border-t border-slate-800/60" />
 
-          {/* Copyright row */}
+          {/* Copyright + version row */}
           <div className="flex flex-col sm:flex-row items-center justify-between w-full gap-2 text-slate-600">
             <span>
               © 2026{' '}
               <span className="text-slate-400 font-medium">Jose Angel Márquez Ramírez</span>
               {' '}— Todos los derechos reservados.
             </span>
-            <span className="text-slate-400 font-medium">  
-                Sugerencias, comentarios o reportes de errores: <a href="mailto:joseangelmarquez857@gmail.com" className="text-slate-400 hover:text-slate-300 underline">
-                  joseangelmarquez857@gmail.com
-                </a>
+
+            {/* Version badge */}
+            <span className="flex items-center gap-1.5">
+              <span className="font-mono text-sky-500 bg-sky-950/60 border border-sky-800/40 px-2 py-0.5 rounded text-[11px] font-semibold">
+                v{APP_VERSION}
+              </span>
+              <span className="text-slate-700">·</span>
+              <span className="text-slate-600">{APP_BUILD_DATE}</span>
+              <span className="text-slate-700">·</span>
+              <a
+                href="https://github.com/Jangelmqza/XTableLab/releases"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-slate-500 hover:text-sky-400 transition-colors underline underline-offset-2"
+              >
+                Changelog
+              </a>
             </span>
+
             <span className="text-slate-700 italic">
-              XTableLab · Datos: IUPAC & NIST
+              Datos: IUPAC &amp; NIST
             </span>
           </div>
         </div>
