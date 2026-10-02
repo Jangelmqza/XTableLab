@@ -1,4 +1,5 @@
-import { X, Atom, CheckCircle, Sparkles } from 'lucide-react';
+import { useEffect } from 'react';
+import { X, Atom, CheckCircle, Sparkles, Keyboard } from 'lucide-react';
 
 interface InfoModalProps {
   isOpen: boolean;
@@ -6,10 +7,28 @@ interface InfoModalProps {
 }
 
 export const InfoModal: React.FC<InfoModalProps> = ({ isOpen, onClose }) => {
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in">
+    <div
+      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="info-modal-title"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in"
+    >
       <div
         className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-2xl p-6 shadow-2xl space-y-5 max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
@@ -103,6 +122,48 @@ export const InfoModal: React.FC<InfoModalProps> = ({ isOpen, onClose }) => {
                 </span>
               </li>
             </ul>
+          </div>
+
+          {/* Keyboard Shortcuts & Accessibility Guide */}
+          <div className="bg-slate-950/80 p-4 rounded-xl border border-slate-800 space-y-2">
+            <h4 className="font-semibold text-sky-300 uppercase text-[11px] tracking-wider flex items-center gap-1.5">
+              <Keyboard className="w-3.5 h-3.5 text-sky-400" />
+              Navegación por Teclado &amp; Accesibilidad
+            </h4>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] text-slate-300 font-mono">
+              <div className="flex items-center justify-between p-1.5 bg-slate-900/60 rounded border border-slate-800">
+                <span className="text-slate-400">Alternar Modo Claro/Oscuro</span>
+                <kbd className="px-1.5 py-0.5 bg-slate-800 rounded text-amber-300 font-bold">T</kbd>
+              </div>
+              <div className="flex items-center justify-between p-1.5 bg-slate-900/60 rounded border border-slate-800">
+                <span className="text-slate-400">Enfocar Buscador</span>
+                <kbd className="px-1.5 py-0.5 bg-slate-800 rounded text-sky-300 font-bold">/</kbd>
+              </div>
+              <div className="flex items-center justify-between p-1.5 bg-slate-900/60 rounded border border-slate-800">
+                <span className="text-slate-400">Navegar Cuadrícula 2D</span>
+                <kbd className="px-1.5 py-0.5 bg-slate-800 rounded text-emerald-300 font-bold">↑ ↓ ← →</kbd>
+              </div>
+              <div className="flex items-center justify-between p-1.5 bg-slate-900/60 rounded border border-slate-800">
+                <span className="text-slate-400">Ver Ficha / Detalle</span>
+                <kbd className="px-1.5 py-0.5 bg-slate-800 rounded text-white font-bold">Enter / Espacio</kbd>
+              </div>
+              <div className="flex items-center justify-between p-1.5 bg-slate-900/60 rounded border border-slate-800">
+                <span className="text-slate-400">Agregar al Comparador</span>
+                <kbd className="px-1.5 py-0.5 bg-slate-800 rounded text-amber-300 font-bold">C</kbd>
+              </div>
+              <div className="flex items-center justify-between p-1.5 bg-slate-900/60 rounded border border-slate-800">
+                <span className="text-slate-400">Cambiar Pestaña</span>
+                <kbd className="px-1.5 py-0.5 bg-slate-800 rounded text-indigo-300 font-bold">1 al 6</kbd>
+              </div>
+              <div className="flex items-center justify-between p-1.5 bg-slate-900/60 rounded border border-slate-800">
+                <span className="text-slate-400">Cerrar Ventana</span>
+                <kbd className="px-1.5 py-0.5 bg-slate-800 rounded text-rose-300 font-bold">Esc</kbd>
+              </div>
+              <div className="flex items-center justify-between p-1.5 bg-slate-900/60 rounded border border-slate-800">
+                <span className="text-slate-400">Ir a Inicio / Fin</span>
+                <kbd className="px-1.5 py-0.5 bg-slate-800 rounded text-slate-300 font-bold">Home / End</kbd>
+              </div>
+            </div>
           </div>
 
           <div className="bg-slate-950 p-3.5 rounded-xl border border-slate-800 text-xs text-slate-400">

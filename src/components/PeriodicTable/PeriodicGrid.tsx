@@ -86,6 +86,99 @@ export const PeriodicGrid: React.FC<PeriodicGridProps> = ({
     return false;
   };
 
+  // 2D Spatial & Numerical Keyboard Navigation Helper
+  const getNextElementZ = (
+    currentZ: number,
+    direction: 'up' | 'down' | 'left' | 'right'
+  ): number => {
+    const current = elementsByZ.get(currentZ);
+    if (!current) return currentZ;
+
+    if (direction === 'right') {
+      return currentZ < 118 ? currentZ + 1 : 1;
+    }
+    if (direction === 'left') {
+      return currentZ > 1 ? currentZ - 1 : 118;
+    }
+    if (direction === 'down') {
+      // Lanthanides (57-71) down to Actinides (89-103)
+      if (currentZ >= 57 && currentZ <= 71) {
+        return Math.min(103, currentZ + 32);
+      }
+      if (currentZ >= 89 && currentZ <= 103) {
+        return currentZ;
+      }
+      // In main table: search down in same group
+      for (let p = current.period + 1; p <= 7; p++) {
+        const candidate = elements.find(
+          (e) =>
+            e.group === current.group &&
+            e.period === p &&
+            !(e.atomicNumber >= 57 && e.atomicNumber <= 71) &&
+            !(e.atomicNumber >= 89 && e.atomicNumber <= 103)
+        );
+        if (candidate) return candidate.atomicNumber;
+      }
+      return currentZ;
+    }
+    if (direction === 'up') {
+      // Actinides (89-103) up to Lanthanides (57-71)
+      if (currentZ >= 89 && currentZ <= 103) {
+        return Math.max(57, currentZ - 32);
+      }
+      if (currentZ >= 57 && currentZ <= 71) {
+        return 39; // Yttrium
+      }
+      // In main table: search up in same group
+      for (let p = current.period - 1; p >= 1; p--) {
+        const candidate = elements.find(
+          (e) =>
+            e.group === current.group &&
+            e.period === p &&
+            !(e.atomicNumber >= 57 && e.atomicNumber <= 71) &&
+            !(e.atomicNumber >= 89 && e.atomicNumber <= 103)
+        );
+        if (candidate) return candidate.atomicNumber;
+      }
+      return currentZ;
+    }
+    return currentZ;
+  };
+
+  const handleCellKeyDown = (e: React.KeyboardEvent, z: number) => {
+    if (e.key === 'ArrowRight') {
+      e.preventDefault();
+      const nextZ = getNextElementZ(z, 'right');
+      document.getElementById(`element-cell-${nextZ}`)?.focus();
+    } else if (e.key === 'ArrowLeft') {
+      e.preventDefault();
+      const nextZ = getNextElementZ(z, 'left');
+      document.getElementById(`element-cell-${nextZ}`)?.focus();
+    } else if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      const nextZ = getNextElementZ(z, 'down');
+      document.getElementById(`element-cell-${nextZ}`)?.focus();
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      const nextZ = getNextElementZ(z, 'up');
+      document.getElementById(`element-cell-${nextZ}`)?.focus();
+    } else if (e.key === 'Home') {
+      e.preventDefault();
+      document.getElementById('element-cell-1')?.focus();
+    } else if (e.key === 'End') {
+      e.preventDefault();
+      document.getElementById('element-cell-118')?.focus();
+    } else if (e.key === 'c' || e.key === 'C') {
+      e.preventDefault();
+      const el = elementsByZ.get(z);
+      if (el) onToggleCompare(el);
+    } else if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      const el = elementsByZ.get(z);
+      if (el) onSelectElement(el);
+    }
+  };
+
   // Helper to render an element card by atomic number
   const renderCell = (z: number) => {
     const el = elementsByZ.get(z);
@@ -108,6 +201,7 @@ export const PeriodicGrid: React.FC<PeriodicGridProps> = ({
         isInComparison={isInComparison}
         onSelect={onSelectElement}
         onToggleCompare={onToggleCompare}
+        onGridKeyDown={handleCellKeyDown}
       />
     );
   };

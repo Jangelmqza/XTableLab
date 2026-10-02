@@ -16,6 +16,7 @@ interface ElementCardProps {
   isInComparison: boolean;
   onSelect: (element: ElementData) => void;
   onToggleCompare?: (element: ElementData) => void;
+  onGridKeyDown?: (e: React.KeyboardEvent, z: number) => void;
 }
 
 export const ElementCard: React.FC<ElementCardProps> = ({
@@ -28,6 +29,8 @@ export const ElementCard: React.FC<ElementCardProps> = ({
   isSelected,
   isInComparison,
   onSelect,
+  onToggleCompare,
+  onGridKeyDown,
 }) => {
   // Determine styling based on display mode
   let cellStyle: React.CSSProperties = {};
@@ -105,13 +108,20 @@ export const ElementCard: React.FC<ElementCardProps> = ({
 
   return (
     <div
+      id={`element-cell-${element.atomicNumber}`}
       role="button"
-      tabIndex={0}
+      tabIndex={isFilteredOut ? -1 : 0}
+      aria-label={`${element.name} (${element.symbol}), número atómico ${element.atomicNumber}, masa ${element.atomicMass.toFixed(2)}, periodo ${element.period}, grupo ${element.group}, bloque ${element.block}, categoría ${element.category}`}
       onClick={() => onSelect(element)}
       onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
+        if (onGridKeyDown) {
+          onGridKeyDown(e, element.atomicNumber);
+        } else if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
           onSelect(element);
+        } else if ((e.key === 'c' || e.key === 'C') && onToggleCompare) {
+          e.preventDefault();
+          onToggleCompare(element);
         }
       }}
       style={{
@@ -121,12 +131,13 @@ export const ElementCard: React.FC<ElementCardProps> = ({
       className={`
         element-cell relative flex flex-col justify-between p-1 sm:p-1.5 rounded-lg border cursor-pointer
         select-none transition-all duration-200 text-left aspect-[4/5] min-w-[50px] sm:min-w-[58px] lg:min-w-[64px]
+        focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 focus:outline-none
         ${bgClasses} ${borderClasses}
         ${isFilteredOut ? 'opacity-20 grayscale pointer-events-none scale-95' : 'opacity-100 hover:shadow-lg'}
         ${isSelected ? 'ring-2 ring-sky-400 ring-offset-2 ring-offset-slate-950 scale-105 z-20' : ''}
         ${isInComparison ? 'ring-2 ring-amber-400' : ''}
       `}
-      title={`${element.name} (${element.symbol}) - Z: ${element.atomicNumber}`}
+      title={`${element.name} (${element.symbol}) - Z: ${element.atomicNumber} [Enter: abrir, C: comparar]`}
     >
       {/* Top row: Atomic Number and radioactive badge */}
       <div className="flex items-center justify-between leading-none w-full">

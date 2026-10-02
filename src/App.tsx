@@ -36,6 +36,81 @@ export function App() {
   const [layoutView, setLayoutView] = useState<'grid' | 'cards'>('grid');
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
 
+  const [theme, setTheme] = useState<'dark' | 'light'>(() => {
+    try {
+      const saved = localStorage.getItem('xtablelab_theme');
+      if (saved === 'light' || saved === 'dark') return saved;
+      return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    } catch {
+      return 'dark';
+    }
+  });
+
+  // Apply theme to document element and persist
+  useEffect(() => {
+    try {
+      localStorage.setItem('xtablelab_theme', theme);
+    } catch {
+      //
+    }
+    const root = document.documentElement;
+    if (theme === 'light') {
+      root.classList.remove('dark');
+      root.classList.add('light');
+    } else {
+      root.classList.remove('light');
+      root.classList.add('dark');
+    }
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
+  };
+
+  // Global Keyboard Shortcuts
+  useEffect(() => {
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (
+        target?.tagName === 'INPUT' ||
+        target?.tagName === 'TEXTAREA' ||
+        target?.tagName === 'SELECT'
+      ) {
+        return;
+      }
+
+      if (e.key === 't' || e.key === 'T') {
+        e.preventDefault();
+        toggleTheme();
+      } else if (e.key === '?' || e.key === 'F1') {
+        e.preventDefault();
+        setIsInfoModalOpen((prev) => !prev);
+      } else if (e.key === '/') {
+        e.preventDefault();
+        const searchInput = document.getElementById('table-search-input') as HTMLInputElement | null;
+        if (searchInput) {
+          searchInput.focus();
+          searchInput.select();
+        }
+      } else if (e.key === '1') {
+        setActiveTab('table');
+      } else if (e.key === '2') {
+        setActiveTab('compare');
+      } else if (e.key === '3') {
+        setActiveTab('atom');
+      } else if (e.key === '4') {
+        setActiveTab('config');
+      } else if (e.key === '5') {
+        setActiveTab('bonds');
+      } else if (e.key === '6') {
+        setActiveTab('quiz');
+      }
+    };
+
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+  }, []);
+
   // PWA beforeinstallprompt handler
   useEffect(() => {
     const handler = (e: Event) => {
@@ -194,6 +269,8 @@ export function App() {
         onOpenInfo={() => setIsInfoModalOpen(true)}
         canInstall={!!deferredPrompt}
         onInstall={handleInstallApp}
+        theme={theme}
+        onToggleTheme={toggleTheme}
       />
 
       {/* Main View Area */}

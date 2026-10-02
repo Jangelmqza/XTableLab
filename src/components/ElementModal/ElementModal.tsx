@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import type { ElementData } from '../../types/element';
 import { CATEGORY_COLORS, PHASE_NAMES } from '../../data/elementsData';
 import { BohrModel } from './BohrModel';
@@ -37,6 +37,32 @@ export const ElementModal: React.FC<ElementModalProps> = ({
   const [activeTab, setActiveTab] = useState<'quick' | 'deep'>('quick');
   const [copiedLink, setCopiedLink] = useState(false);
 
+  // Keyboard navigation inside modal: Escape to close, Arrows to cycle elements
+  useEffect(() => {
+    if (!element) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (document.activeElement?.tagName === 'INPUT' || document.activeElement?.tagName === 'TEXTAREA') return;
+
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        onClose();
+      } else if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        onNavigate(-1);
+      } else if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        onNavigate(1);
+      } else if (e.key === 'c' || e.key === 'C') {
+        e.preventDefault();
+        onAddToCompare(element);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [element, onClose, onNavigate, onAddToCompare]);
+
   if (!element) return null;
 
   const cat = CATEGORY_COLORS[element.category] || CATEGORY_COLORS['unknown'];
@@ -52,7 +78,13 @@ export const ElementModal: React.FC<ElementModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-slate-950/85 backdrop-blur-md overflow-y-auto animate-in fade-in duration-200">
+    <div
+      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="element-modal-title"
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-slate-950/85 backdrop-blur-md overflow-y-auto animate-in fade-in duration-200"
+    >
       <div
         className="bg-slate-900 border border-slate-700/80 rounded-2xl w-full max-w-4xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh] my-auto"
         onClick={(e) => e.stopPropagation()}

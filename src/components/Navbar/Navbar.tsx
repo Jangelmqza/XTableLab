@@ -7,6 +7,8 @@ import {
   GraduationCap,
   HelpCircle,
   Download,
+  Sun,
+  Moon,
 } from 'lucide-react';
 import { APP_VERSION } from '../../version';
 
@@ -20,6 +22,8 @@ interface NavbarProps {
   onOpenInfo: () => void;
   canInstall?: boolean;
   onInstall?: () => void;
+  theme: 'dark' | 'light';
+  onToggleTheme: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -29,6 +33,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenInfo,
   canInstall,
   onInstall,
+  theme,
+  onToggleTheme,
 }) => {
   const tabs = [
     { id: 'table', label: 'Tabla Periódica', icon: Table2 },
@@ -108,10 +114,25 @@ export const Navbar: React.FC<NavbarProps> = ({
             </button>
           )}
 
+          {/* Dark / Light Mode Toggle */}
+          <button
+            type="button"
+            onClick={onToggleTheme}
+            className="p-2 rounded-xl text-slate-400 hover:text-white bg-slate-900 hover:bg-slate-800 border border-slate-800 transition-all flex items-center justify-center text-xs"
+            title={`Cambiar a modo ${theme === 'dark' ? 'claro' : 'oscuro'} (Atajo: tecla T)`}
+            aria-label={`Cambiar a modo ${theme === 'dark' ? 'claro' : 'oscuro'}`}
+          >
+            {theme === 'dark' ? (
+              <Sun className="w-4 h-4 text-amber-400 hover:rotate-90 transition-transform duration-300" />
+            ) : (
+              <Moon className="w-4 h-4 text-indigo-400 hover:-rotate-12 transition-transform duration-300" />
+            )}
+          </button>
+
           <button
             onClick={onOpenInfo}
             className="p-2 rounded-xl text-slate-400 hover:text-white bg-slate-900 hover:bg-slate-800 border border-slate-800 transition-colors flex items-center gap-1.5 text-xs font-medium"
-            title="Información y guía didáctica"
+            title="Información y guía didáctica (Atajo: ? o F1)"
           >
             <HelpCircle className="w-4 h-4 text-sky-400" />
             <span className="hidden lg:inline">Guía & Metas</span>
