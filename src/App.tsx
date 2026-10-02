@@ -1,10 +1,11 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import type { ElementData, ElementCategory, ElementBlock, TrendProperty } from './types/element';
 import type { TableDisplayMode } from './components/PeriodicTable/ElementCard';
 import { ELEMENTS_DATA } from './data/elementsData';
 import { Navbar, type AppTab } from './components/Navbar/Navbar';
 import { FilterBar } from './components/PeriodicTable/FilterBar';
 import { PeriodicGrid } from './components/PeriodicTable/PeriodicGrid';
+import { ElementListView } from './components/PeriodicTable/ElementListView';
 import { HeatmapLegend } from './components/PeriodicTable/HeatmapLegend';
 import { ElementModal } from './components/ElementModal/ElementModal';
 import { ElementComparator } from './components/Comparator/ElementComparator';
@@ -15,6 +16,16 @@ import { QuizModule } from './components/Quiz/QuizModule';
 import { InfoModal } from './components/InfoModal/InfoModal';
 import { APP_VERSION, APP_BUILD_DATE } from './version';
 
+// Type for PWA BeforeInstallPromptEvent
+interface BeforeInstallPromptEvent extends Event {
+  readonly platforms: string[];
+  readonly userChoice: Promise<{
+    outcome: 'accepted' | 'dismissed';
+    platform: string;
+  }>;
+  prompt(): Promise<void>;
+}
+
 
 export function App() {
   const [activeTab, setActiveTab] = useState<AppTab>('table');
@@ -22,6 +33,71 @@ export function App() {
   const [comparisonList, setComparisonList] = useState<ElementData[]>([]);
   const [simulatorTargetElement, setSimulatorTargetElement] = useState<ElementData | null>(null);
   const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
+  const [layoutView, setLayoutView] = useState<'grid' | 'cards'>('grid');
+  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+
+  // PWA beforeinstallprompt handler
+  useEffect(() => {
+    const handler = (e: Event) => {
+      e.preventDefault();
+      setDeferredPrompt(e as BeforeInstallPromptEvent);
+    };
+    window.addEventListener('beforeinstallprompt', handler);
+    return () => window.removeEventListener('beforeinstallprompt', handler);
+  }, []);
+
+  const handleInstallApp = async () => {
+    if (!deferredPrompt) return;
+    await deferredPrompt.prompt();
+    const choice = await deferredPrompt.userChoice;
+    if (choice.outcome === 'accepted') {
+      setDeferredPrompt(null);
+    }
+  };
+
+  // URL Deep Linking initialization
+  useEffect(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const tabParam = params.get('tab') as AppTab | null;
+      if (tabParam && ['table', 'compare', 'atom', 'config', 'bonds', 'quiz'].includes(tabParam)) {
+        setActiveTab(tabParam);
+      }
+      const elParam = params.get('el');
+      if (elParam) {
+        const clean = elParam.toLowerCase().trim();
+        const matched = ELEMENTS_DATA.find(
+          (e) =>
+            e.symbol.toLowerCase() === clean ||
+            e.atomicNumber.toString() === clean ||
+            e.name.toLowerCase() === clean
+        );
+        if (matched) setSelectedElement(matched);
+      }
+    } catch {
+      // Ignorar errores de acceso a window en entornos sin DOM
+    }
+  }, []);
+
+  // Sync URL when activeTab or selectedElement changes
+  useEffect(() => {
+    try {
+      const url = new URL(window.location.href);
+      if (selectedElement) {
+        url.searchParams.set('el', selectedElement.symbol);
+      } else {
+        url.searchParams.delete('el');
+      }
+      if (activeTab !== 'table') {
+        url.searchParams.set('tab', activeTab);
+      } else {
+        url.searchParams.delete('tab');
+      }
+      window.history.replaceState({}, '', url.toString());
+    } catch {
+      // Ignorar en entornos sin DOM
+    }
+  }, [selectedElement, activeTab]);
 
   // Table filters and display modes
   const [searchQuery, setSearchQuery] = useState('');
@@ -116,6 +192,8 @@ export function App() {
         onTabChange={setActiveTab}
         comparisonCount={comparisonList.length}
         onOpenInfo={() => setIsInfoModalOpen(true)}
+        canInstall={!!deferredPrompt}
+        onInstall={handleInstallApp}
       />
 
       {/* Main View Area */}
@@ -129,6 +207,8 @@ export function App() {
               onSearchChange={setSearchQuery}
               displayMode={displayMode}
               onDisplayModeChange={setDisplayMode}
+              layoutView={layoutView}
+              onLayoutViewChange={setLayoutView}
               activeTrend={activeTrend}
               onActiveTrendChange={setActiveTrend}
               selectedCategory={selectedCategory}
@@ -152,21 +232,39 @@ export function App() {
               />
             )}
 
-            {/* Periodic Grid */}
-            <PeriodicGrid
-              elements={ELEMENTS_DATA}
-              displayMode={displayMode}
-              activeTrend={activeTrend}
-              temperatureK={temperatureK}
-              selectedCategory={selectedCategory}
-              selectedBlock={selectedBlock}
-              searchQuery={searchQuery}
-              onlyRadioactive={onlyRadioactive}
-              selectedElement={selectedElement}
-              comparisonList={comparisonList}
-              onSelectElement={setSelectedElement}
-              onToggleCompare={handleToggleCompare}
-            />
+            {/* Periodic Grid or Responsive Cards View */}
+            {layoutView === 'grid' ? (
+              <PeriodicGrid
+                elements={ELEMENTS_DATA}
+                displayMode={displayMode}
+                activeTrend={activeTrend}
+                temperatureK={temperatureK}
+                selectedCategory={selectedCategory}
+                selectedBlock={selectedBlock}
+                searchQuery={searchQuery}
+                onlyRadioactive={onlyRadioactive}
+                selectedElement={selectedElement}
+                comparisonList={comparisonList}
+                onSelectElement={setSelectedElement}
+                onToggleCompare={handleToggleCompare}
+                onSwitchToCards={() => setLayoutView('cards')}
+              />
+            ) : (
+              <ElementListView
+                elements={ELEMENTS_DATA}
+                displayMode={displayMode}
+                activeTrend={activeTrend}
+                temperatureK={temperatureK}
+                selectedCategory={selectedCategory}
+                selectedBlock={selectedBlock}
+                searchQuery={searchQuery}
+                onlyRadioactive={onlyRadioactive}
+                selectedElement={selectedElement}
+                comparisonList={comparisonList}
+                onSelectElement={setSelectedElement}
+                onToggleCompare={handleToggleCompare}
+              />
+            )}
           </div>
         )}
 

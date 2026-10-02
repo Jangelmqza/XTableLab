@@ -6,6 +6,7 @@ import {
   Flame,
   GraduationCap,
   HelpCircle,
+  Download,
 } from 'lucide-react';
 import { APP_VERSION } from '../../version';
 
@@ -17,6 +18,8 @@ interface NavbarProps {
   onTabChange: (tab: AppTab) => void;
   comparisonCount: number;
   onOpenInfo: () => void;
+  canInstall?: boolean;
+  onInstall?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -24,6 +27,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   onTabChange,
   comparisonCount,
   onOpenInfo,
+  canInstall,
+  onInstall,
 }) => {
   const tabs = [
     { id: 'table', label: 'Tabla Periódica', icon: Table2 },
@@ -90,8 +95,19 @@ export const Navbar: React.FC<NavbarProps> = ({
           })}
         </nav>
 
-        {/* Info / Help Trigger */}
+        {/* Actions Area */}
         <div className="flex items-center gap-2 shrink-0">
+          {canInstall && (
+            <button
+              onClick={onInstall}
+              className="px-2.5 py-1.5 rounded-xl text-sky-300 hover:text-white bg-sky-950/80 hover:bg-sky-900 border border-sky-700/60 transition-all flex items-center gap-1.5 text-xs font-semibold shadow-md animate-pulse"
+              title="Instalar XTableLab como aplicación en tu dispositivo"
+            >
+              <Download className="w-4 h-4 text-sky-400" />
+              <span className="hidden sm:inline">Instalar</span>
+            </button>
+          )}
+
           <button
             onClick={onOpenInfo}
             className="p-2 rounded-xl text-slate-400 hover:text-white bg-slate-900 hover:bg-slate-800 border border-slate-800 transition-colors flex items-center gap-1.5 text-xs font-medium"

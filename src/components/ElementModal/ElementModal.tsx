@@ -13,6 +13,8 @@ import {
   BookOpen,
   GraduationCap,
   Radiation,
+  Share2,
+  Check,
 } from 'lucide-react';
 
 interface ElementModalProps {
@@ -33,10 +35,21 @@ export const ElementModal: React.FC<ElementModalProps> = ({
   onGoToSimulator,
 }) => {
   const [activeTab, setActiveTab] = useState<'quick' | 'deep'>('quick');
+  const [copiedLink, setCopiedLink] = useState(false);
 
   if (!element) return null;
 
   const cat = CATEGORY_COLORS[element.category] || CATEGORY_COLORS['unknown'];
+
+  const handleShareElement = () => {
+    const url = `${window.location.origin}${window.location.pathname}?el=${element.symbol}`;
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(url).then(() => {
+        setCopiedLink(true);
+        setTimeout(() => setCopiedLink(false), 2200);
+      });
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-slate-950/85 backdrop-blur-md overflow-y-auto animate-in fade-in duration-200">
@@ -109,7 +122,29 @@ export const ElementModal: React.FC<ElementModalProps> = ({
           </div>
 
           {/* Right Action buttons */}
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1 sm:gap-1.5">
+            <button
+              type="button"
+              onClick={handleShareElement}
+              title="Copiar enlace directo para compartir este elemento"
+              className={`p-2 rounded-lg transition-all flex items-center gap-1.5 text-xs font-medium border ${
+                copiedLink
+                  ? 'bg-emerald-950/80 border-emerald-500/60 text-emerald-300'
+                  : 'border-slate-800 bg-slate-800/80 text-slate-300 hover:text-white hover:bg-slate-700'
+              }`}
+            >
+              {copiedLink ? (
+                <>
+                  <Check className="w-4 h-4 text-emerald-400" />
+                  <span className="hidden sm:inline">¡Copiado!</span>
+                </>
+              ) : (
+                <>
+                  <Share2 className="w-4 h-4 text-sky-400" />
+                  <span className="hidden sm:inline">Compartir</span>
+                </>
+              )}
+            </button>
             <button
               onClick={() => onNavigate(-1)}
               title="Elemento anterior (Z - 1)"

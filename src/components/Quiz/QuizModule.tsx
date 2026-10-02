@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { ElementData } from '../../types/element';
 import {
   GraduationCap,
@@ -7,6 +7,7 @@ import {
   Trophy,
   Flame,
   ArrowRight,
+  RotateCcw,
 } from 'lucide-react';
 
 interface QuizModuleProps {
@@ -175,10 +176,63 @@ export const QuizModule: React.FC<QuizModuleProps> = ({ elements }) => {
     generateQuestion('symbols', elements)
   );
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
-  const [score, setScore] = useState<number>(0);
-  const [totalAnswered, setTotalAnswered] = useState<number>(0);
+
+  // Persistent stats from localStorage
+  const [score, setScore] = useState<number>(() => {
+    try {
+      const saved = localStorage.getItem('xtablelab_quiz_score');
+      return saved ? parseInt(saved, 10) : 0;
+    } catch {
+      return 0;
+    }
+  });
+
+  const [totalAnswered, setTotalAnswered] = useState<number>(() => {
+    try {
+      const saved = localStorage.getItem('xtablelab_quiz_total');
+      return saved ? parseInt(saved, 10) : 0;
+    } catch {
+      return 0;
+    }
+  });
+
   const [streak, setStreak] = useState<number>(0);
-  const [bestStreak, setBestStreak] = useState<number>(0);
+
+  const [bestStreak, setBestStreak] = useState<number>(() => {
+    try {
+      const saved = localStorage.getItem('xtablelab_quiz_best_streak');
+      return saved ? parseInt(saved, 10) : 0;
+    } catch {
+      return 0;
+    }
+  });
+
+  // Save stats on change
+  useEffect(() => {
+    try {
+      localStorage.setItem('xtablelab_quiz_score', score.toString());
+      localStorage.setItem('xtablelab_quiz_total', totalAnswered.toString());
+      localStorage.setItem('xtablelab_quiz_best_streak', bestStreak.toString());
+    } catch {
+      // Ignorar en caso de cuota de storage llena o modo privado estricto
+    }
+  }, [score, totalAnswered, bestStreak]);
+
+  const handleResetStats = () => {
+    if (window.confirm('¿Deseas reiniciar tus estadísticas de aciertos y rachas acumuladas?')) {
+      setScore(0);
+      setTotalAnswered(0);
+      setStreak(0);
+      setBestStreak(0);
+      try {
+        localStorage.removeItem('xtablelab_quiz_score');
+        localStorage.removeItem('xtablelab_quiz_total');
+        localStorage.removeItem('xtablelab_quiz_best_streak');
+      } catch {
+        //
+      }
+    }
+  };
 
   const nextQuestion = (cat: QuizCategory = category) => {
     setSelectedIndex(null);
@@ -220,19 +274,35 @@ export const QuizModule: React.FC<QuizModuleProps> = ({ elements }) => {
         </div>
 
         {/* Score & Streak Stats */}
-        <div className="flex items-center gap-4 text-xs font-mono bg-slate-950 p-2.5 rounded-xl border border-slate-800">
-          <div className="flex items-center gap-1.5 text-emerald-400 font-bold">
+        <div className="flex flex-wrap items-center gap-3 text-xs font-mono bg-slate-950 p-2.5 rounded-xl border border-slate-800">
+          <div className="flex items-center gap-1.5 text-emerald-400 font-bold" title="Aciertos acumulados">
             <Trophy className="w-4 h-4" />
             <span>
-              Aciertos: {score} / {totalAnswered} (
-              {totalAnswered > 0 ? Math.round((score / totalAnswered) * 100) : 0}%)
+              {score}/{totalAnswered} ({totalAnswered > 0 ? Math.round((score / totalAnswered) * 100) : 0}%)
             </span>
           </div>
 
-          <div className="flex items-center gap-1.5 text-amber-400 font-bold">
+          <div className="flex items-center gap-1.5 text-amber-400 font-bold" title="Racha actual">
             <Flame className="w-4 h-4" />
             <span>Racha: {streak}</span>
           </div>
+
+          {bestStreak > 0 && (
+            <div className="hidden sm:flex items-center gap-1 text-slate-400 font-medium text-[11px]" title="Mejor racha histórica">
+              <span>(Récord: <strong className="text-amber-300">{bestStreak}</strong>)</span>
+            </div>
+          )}
+
+          {totalAnswered > 0 && (
+            <button
+              type="button"
+              onClick={handleResetStats}
+              className="p-1 rounded text-slate-500 hover:text-slate-300 hover:bg-slate-800 transition-colors"
+              title="Reiniciar estadísticas del quiz"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+            </button>
+          )}
         </div>
       </div>
 

@@ -3,13 +3,15 @@ import type { ElementCategory, ElementBlock, TrendProperty } from '../../types/e
 import type { TableDisplayMode } from './ElementCard';
 import { CATEGORY_COLORS } from '../../data/elementsData';
 import { TREND_INFO } from '../../utils/trends';
-import { Search, RotateCcw, Flame, Layers, Box, Thermometer, Sparkles, Radiation } from 'lucide-react';
+import { Search, RotateCcw, Flame, Layers, Box, Thermometer, Sparkles, Radiation, LayoutGrid, Rows } from 'lucide-react';
 
 interface FilterBarProps {
   searchQuery: string;
   onSearchChange: (q: string) => void;
   displayMode: TableDisplayMode;
   onDisplayModeChange: (mode: TableDisplayMode) => void;
+  layoutView: 'grid' | 'cards';
+  onLayoutViewChange: (view: 'grid' | 'cards') => void;
   activeTrend: TrendProperty;
   onActiveTrendChange: (trend: TrendProperty) => void;
   selectedCategory: ElementCategory | 'all';
@@ -35,6 +37,8 @@ export const FilterBar: React.FC<FilterBarProps> = ({
   onCategoryChange,
   selectedBlock,
   onBlockChange,
+  layoutView,
+  onLayoutViewChange,
   temperatureK,
   onTemperatureChange,
   onlyRadioactive,
@@ -56,7 +60,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
 
   return (
     <div className="bg-slate-900/95 border border-slate-800 rounded-2xl p-4 sm:p-5 shadow-2xl backdrop-blur-xl mb-6 space-y-4">
-      {/* Top row: Search bar & Display Mode Selector */}
+      {/* Top row: Search bar, Layout View Switch & Display Mode Selector */}
       <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4">
         {/* Search */}
         <div className="relative flex-1">
@@ -76,6 +80,36 @@ export const FilterBar: React.FC<FilterBarProps> = ({
               Borrar
             </button>
           )}
+        </div>
+
+        {/* View Layout Toggle (Grid vs Cards) */}
+        <div className="flex items-center gap-1 p-1 bg-slate-950/90 rounded-xl border border-slate-800 shrink-0">
+          <button
+            type="button"
+            onClick={() => onLayoutViewChange('grid')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+              layoutView === 'grid'
+                ? 'bg-sky-600 text-white shadow-md shadow-sky-600/30 font-semibold'
+                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+            }`}
+            title="Vista de tabla periódica tradicional completa (18 columnas)"
+          >
+            <LayoutGrid className="w-3.5 h-3.5" />
+            <span>Tabla</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => onLayoutViewChange('cards')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+              layoutView === 'cards'
+                ? 'bg-sky-600 text-white shadow-md shadow-sky-600/30 font-semibold'
+                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+            }`}
+            title="Vista de fichas adaptable y optimizada para celulares y listados"
+          >
+            <Rows className="w-3.5 h-3.5" />
+            <span>Fichas Móvil</span>
+          </button>
         </div>
 
         {/* Display Mode Tabs */}

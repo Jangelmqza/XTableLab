@@ -16,6 +16,7 @@ interface PeriodicGridProps {
   comparisonList: ElementData[];
   onSelectElement: (element: ElementData) => void;
   onToggleCompare: (element: ElementData) => void;
+  onSwitchToCards?: () => void;
 }
 
 const GROUP_LABELS = [
@@ -52,6 +53,7 @@ export const PeriodicGrid: React.FC<PeriodicGridProps> = ({
   comparisonList,
   onSelectElement,
   onToggleCompare,
+  onSwitchToCards,
 }) => {
   // Elements lookup map by atomic number
   const elementsByZ = React.useMemo(() => {
@@ -111,14 +113,31 @@ export const PeriodicGrid: React.FC<PeriodicGridProps> = ({
   };
 
   return (
-    <div className="w-full overflow-x-auto pb-6 select-none">
-      <div className="min-w-[1020px] max-w-full mx-auto space-y-4">
-        {/* Main Grid: 18 Columns + 1 Period label column */}
-        <div className="grid grid-cols-[36px_repeat(18,_minmax(0,_1fr))] gap-1.5 sm:gap-2 items-center">
-          {/* Header Row: Group Numbers & Traditional CAS */}
-          <div className="text-center font-mono text-[10px] text-slate-500 font-bold">
-            P \ G
-          </div>
+    <div className="w-full select-none space-y-2">
+      {/* Mobile hint banner */}
+      <div className="lg:hidden flex items-center justify-between gap-2 px-3 py-2 bg-sky-950/60 border border-sky-800/60 rounded-xl text-xs text-sky-200">
+        <span className="flex items-center gap-1.5 font-medium">
+          ↔ Desliza la tabla para ver todos los grupos
+        </span>
+        {onSwitchToCards && (
+          <button
+            type="button"
+            onClick={onSwitchToCards}
+            className="px-2 py-0.5 rounded bg-sky-600 hover:bg-sky-500 text-white font-semibold text-[11px] shrink-0 transition-colors shadow"
+          >
+            Ver en Fichas
+          </button>
+        )}
+      </div>
+
+      <div className="w-full overflow-x-auto pb-6">
+        <div className="min-w-[1020px] max-w-full mx-auto space-y-4">
+          {/* Main Grid: 18 Columns + 1 Period label column */}
+          <div className="grid grid-cols-[36px_repeat(18,_minmax(0,_1fr))] gap-1.5 sm:gap-2 items-center">
+            {/* Header Row: Group Numbers & Traditional CAS */}
+            <div className="text-center font-mono text-[10px] text-slate-500 font-bold">
+              P \ G
+            </div>
           {GROUP_LABELS.map((grp) => (
             <div
               key={grp.num}
@@ -288,5 +307,6 @@ export const PeriodicGrid: React.FC<PeriodicGridProps> = ({
         </div>
       </div>
     </div>
+  </div>
   );
 };
