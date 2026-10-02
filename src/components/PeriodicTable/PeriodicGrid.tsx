@@ -329,11 +329,11 @@ export const PeriodicGrid: React.FC<PeriodicGridProps> = ({
           {renderCell(55)} {/* Cs */}
           {renderCell(56)} {/* Ba */}
           {/* Lanthanide Anchor */}
-          <div className="flex flex-col items-center justify-center p-1 rounded-lg border border-indigo-500/40 bg-indigo-950/30 text-indigo-300 aspect-[4/5] text-center shadow-inner">
+          <div className="flex flex-col items-center justify-center p-1 rounded-lg border border-indigo-500/50 bg-indigo-950/30 aspect-[4/5] text-center shadow-inner transition-colors">
             <span className="text-[9px] font-mono font-bold text-indigo-400">57-71</span>
-            <span className="text-[10px] sm:text-xs font-bold leading-tight">La-Lu</span>
-            <span className="text-[8px] text-indigo-300/80">Lantánidos</span>
-            <span className="text-[9px] text-indigo-400 mt-0.5">↓</span>
+            <span className="text-[10px] sm:text-xs font-black leading-tight text-indigo-300">La-Lu</span>
+            <span className="text-[8px] font-bold text-indigo-300">Lantánidos</span>
+            <span className="text-[9px] font-bold text-indigo-400 mt-0.5">↓</span>
           </div>
           {renderCell(72)} {/* Hf */}
           {renderCell(73)} {/* Ta */}
@@ -356,11 +356,11 @@ export const PeriodicGrid: React.FC<PeriodicGridProps> = ({
           {renderCell(87)} {/* Fr */}
           {renderCell(88)} {/* Ra */}
           {/* Actinide Anchor */}
-          <div className="flex flex-col items-center justify-center p-1 rounded-lg border border-fuchsia-500/40 bg-fuchsia-950/30 text-fuchsia-300 aspect-[4/5] text-center shadow-inner">
+          <div className="flex flex-col items-center justify-center p-1 rounded-lg border border-fuchsia-500/50 bg-fuchsia-950/30 aspect-[4/5] text-center shadow-inner transition-colors">
             <span className="text-[9px] font-mono font-bold text-fuchsia-400">89-103</span>
-            <span className="text-[10px] sm:text-xs font-bold leading-tight">Ac-Lr</span>
-            <span className="text-[8px] text-fuchsia-300/80">Actínidos</span>
-            <span className="text-[9px] text-fuchsia-400 mt-0.5">↓</span>
+            <span className="text-[10px] sm:text-xs font-black leading-tight text-fuchsia-300">Ac-Lr</span>
+            <span className="text-[8px] font-bold text-fuchsia-300">Actínidos</span>
+            <span className="text-[9px] font-bold text-fuchsia-400 mt-0.5">↓</span>
           </div>
           {renderCell(104)} {/* Rf */}
           {renderCell(105)} {/* Db */}
@@ -384,8 +384,8 @@ export const PeriodicGrid: React.FC<PeriodicGridProps> = ({
           {/* Lanthanides row: 57 to 71 */}
           <div className="grid grid-cols-[140px_repeat(15,_minmax(0,_1fr))] gap-1.5 sm:gap-2 items-center">
             <div className="flex items-center gap-2 px-2 text-right justify-end">
-              <span className="w-2 h-2 rounded-full bg-indigo-400"></span>
-              <span className="text-xs font-medium text-indigo-300">Lantánidos (57-71)</span>
+              <span className="w-2.5 h-2.5 rounded-full bg-indigo-500 shadow-sm"></span>
+              <span className="text-xs font-bold text-indigo-400">Lantánidos (57-71)</span>
             </div>
             {Array.from({ length: 15 }, (_, i) => 57 + i).map((z) => renderCell(z))}
           </div>
@@ -393,8 +393,8 @@ export const PeriodicGrid: React.FC<PeriodicGridProps> = ({
           {/* Actinides row: 89 to 103 */}
           <div className="grid grid-cols-[140px_repeat(15,_minmax(0,_1fr))] gap-1.5 sm:gap-2 items-center">
             <div className="flex items-center gap-2 px-2 text-right justify-end">
-              <span className="w-2 h-2 rounded-full bg-fuchsia-400"></span>
-              <span className="text-xs font-medium text-fuchsia-300">Actínidos (89-103)</span>
+              <span className="w-2.5 h-2.5 rounded-full bg-fuchsia-500 shadow-sm"></span>
+              <span className="text-xs font-bold text-fuchsia-400">Actínidos (89-103)</span>
             </div>
             {Array.from({ length: 15 }, (_, i) => 89 + i).map((z) => renderCell(z))}
           </div>

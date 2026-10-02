@@ -200,11 +200,13 @@ html.light .element-cell:hover {
 }
 
 html.light .element-cell .text-slate-400 {
-  color: #475569;
+  color: #334155 !important;
+  font-weight: 700;
 }
 
 html.light .element-cell .text-slate-300 {
-  color: #334155;
+  color: #0f172a !important;
+  font-weight: 600;
 }
 
 html.light .ring-offset-slate-950 {
@@ -212,16 +214,53 @@ html.light .ring-offset-slate-950 {
 }
 
 /* Category & Block Colors High-Contrast Tuning for Light Mode */
-html.light .text-sky-400 { color: #0284c7; }
-html.light .text-purple-400 { color: #7e22ce; }
-html.light .text-rose-400 { color: #e11d48; }
-html.light .text-orange-400 { color: #ea580c; }
-html.light .text-teal-400 { color: #0d9488; }
-html.light .text-emerald-400 { color: #059669; }
-html.light .text-blue-400 { color: #2563eb; }
-html.light .text-indigo-400 { color: #4f46e5; }
-html.light .text-fuchsia-400 { color: #c026d3; }
-html.light .text-amber-400 { color: #d97706; }
+html.light .text-sky-400 { color: #0369a1 !important; }
+html.light .text-purple-400 { color: #6b21a8 !important; }
+html.light .text-rose-400 { color: #be123c !important; }
+html.light .text-orange-400 { color: #c2410c !important; }
+html.light .text-teal-400 { color: #0f766e !important; }
+html.light .text-emerald-400 { color: #047857 !important; }
+html.light .text-blue-400 { color: #1d4ed8 !important; }
+html.light .text-amber-400 { color: #b45309 !important; }
+
+/* Lantánidos y Actínidos - Máximo contraste de letras en Modo Claro */
+html.light .text-indigo-300,
+html.light .text-indigo-400,
+html.light [class*="text-indigo-300"],
+html.light [class*="text-indigo-400"] {
+  color: #312e81 !important; /* Indigo 900 oscuro y muy nítido */
+}
+
+html.light .text-fuchsia-300,
+html.light .text-fuchsia-400,
+html.light [class*="text-fuchsia-300"],
+html.light [class*="text-fuchsia-400"] {
+  color: #701a75 !important; /* Fuchsia 900 oscuro y muy nítido */
+}
+
+/* Cajas ancla e informativas de Lantánidos y Actínidos en Modo Claro */
+html.light .bg-indigo-950\/30 {
+  background-color: #e0e7ff !important; /* indigo-100 */
+  border-color: #6366f1 !important;
+}
+
+html.light .bg-fuchsia-950\/30 {
+  background-color: #fae8ff !important; /* fuchsia-100 */
+  border-color: #d946ef !important;
+}
+
+/* Celdas de Lantánidos y Actínidos en Modo Claro */
+html.light .element-cell.bg-indigo-500\/20,
+html.light .bg-indigo-500\/20 {
+  background-color: #eef2ff !important; /* indigo-50 */
+  border-color: #818cf8 !important;
+}
+
+html.light .element-cell.bg-fuchsia-500\/20,
+html.light .bg-fuchsia-500\/20 {
+  background-color: #fdf4ff !important; /* fuchsia-50 */
+  border-color: #e879f9 !important;
+}
 
 /* Modals Backdrop in Light Mode */
 html.light .fixed.inset-0.bg-slate-950\/85,
