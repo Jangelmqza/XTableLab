@@ -41,14 +41,21 @@ export const ElementListView: React.FC<ElementListViewProps> = ({
 
   // Filter elements
   const filteredElements = useMemo(() => {
+    const normalize = (str: string) =>
+      str
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase()
+        .trim();
+    const q = normalize(searchQuery);
+
     return elements.filter((el) => {
       if (selectedCategory !== 'all' && el.category !== selectedCategory) return false;
       if (selectedBlock !== 'all' && el.block !== selectedBlock) return false;
       if (onlyRadioactive && !el.radioactive) return false;
-      if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase().trim();
-        const matchName = el.name.toLowerCase().includes(q);
-        const matchNameEn = el.nameEn.toLowerCase().includes(q);
+      if (q) {
+        const matchName = normalize(el.name).includes(q);
+        const matchNameEn = normalize(el.nameEn).includes(q);
         const matchSymbol = el.symbol.toLowerCase() === q || el.symbol.toLowerCase().startsWith(q);
         const matchNumber = el.atomicNumber.toString() === q;
         if (!matchName && !matchNameEn && !matchSymbol && !matchNumber) return false;

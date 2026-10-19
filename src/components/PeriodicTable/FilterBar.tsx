@@ -322,11 +322,11 @@ export const FilterBar: React.FC<FilterBarProps> = ({
             onlyRadioactive) && (
             <button
               onClick={onResetFilters}
-              title="Restablecer todos los filtros"
+              title={`Restablecer todos los filtros (${totalFilteredCount} de 118 visibles)`}
               className="flex items-center gap-1 text-xs text-rose-400 hover:text-rose-300 bg-rose-950/30 border border-rose-800/40 px-2 py-1.5 rounded-lg transition-colors"
             >
               <RotateCcw className="w-3.5 h-3.5" />
-              <span>Limpiar ({totalFilteredCount})</span>
+              <span>Limpiar filtros ({totalFilteredCount}/118)</span>
             </button>
           )}
         </div>

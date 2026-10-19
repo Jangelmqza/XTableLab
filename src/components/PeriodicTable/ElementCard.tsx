@@ -111,7 +111,7 @@ export const ElementCard: React.FC<ElementCardProps> = ({
       id={`element-cell-${element.atomicNumber}`}
       role="button"
       tabIndex={isFilteredOut ? -1 : 0}
-      aria-label={`${element.name} (${element.symbol}), número atómico ${element.atomicNumber}, masa ${element.atomicMass.toFixed(2)}, periodo ${element.period}, grupo ${element.group}, bloque ${element.block}, categoría ${element.category}`}
+      aria-label={`${element.name} (${element.symbol}), número atómico ${element.atomicNumber}, masa ${element.atomicMass.toFixed(2)}, periodo ${element.period}, ${element.group !== null ? `grupo ${element.group}` : 'serie f'}, bloque ${element.block}, categoría ${element.category}`}
       onClick={() => onSelect(element)}
       onKeyDown={(e) => {
         if (onGridKeyDown) {

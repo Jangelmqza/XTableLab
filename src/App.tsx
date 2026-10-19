@@ -27,9 +27,46 @@ interface BeforeInstallPromptEvent extends Event {
 }
 
 
+const normalizeSearch = (str: string) =>
+  str
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim();
+
 export function App() {
-  const [activeTab, setActiveTab] = useState<AppTab>('table');
-  const [selectedElement, setSelectedElement] = useState<ElementData | null>(null);
+  const [activeTab, setActiveTab] = useState<AppTab>(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const tabParam = params.get('tab') as AppTab | null;
+      if (tabParam && ['table', 'compare', 'atom', 'config', 'bonds', 'quiz'].includes(tabParam)) {
+        return tabParam;
+      }
+    } catch {
+      // Ignorar en entornos sin DOM
+    }
+    return 'table';
+  });
+  const [selectedElement, setSelectedElement] = useState<ElementData | null>(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const elParam = params.get('el');
+      if (elParam) {
+        const clean = normalizeSearch(elParam);
+        const matched = ELEMENTS_DATA.find(
+          (e) =>
+            e.symbol.toLowerCase() === clean ||
+            e.atomicNumber.toString() === clean ||
+            normalizeSearch(e.name) === clean ||
+            normalizeSearch(e.nameEn) === clean
+        );
+        if (matched) return matched;
+      }
+    } catch {
+      // Ignorar en entornos sin DOM
+    }
+    return null;
+  });
   const [comparisonList, setComparisonList] = useState<ElementData[]>([]);
   const [simulatorTargetElement, setSimulatorTargetElement] = useState<ElementData | null>(null);
   const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
@@ -130,30 +167,6 @@ export function App() {
     }
   };
 
-  // URL Deep Linking initialization
-  useEffect(() => {
-    try {
-      const params = new URLSearchParams(window.location.search);
-      const tabParam = params.get('tab') as AppTab | null;
-      if (tabParam && ['table', 'compare', 'atom', 'config', 'bonds', 'quiz'].includes(tabParam)) {
-        setActiveTab(tabParam);
-      }
-      const elParam = params.get('el');
-      if (elParam) {
-        const clean = elParam.toLowerCase().trim();
-        const matched = ELEMENTS_DATA.find(
-          (e) =>
-            e.symbol.toLowerCase() === clean ||
-            e.atomicNumber.toString() === clean ||
-            e.name.toLowerCase() === clean
-        );
-        if (matched) setSelectedElement(matched);
-      }
-    } catch {
-      // Ignorar errores de acceso a window en entornos sin DOM
-    }
-  }, []);
-
   // Sync URL when activeTab or selectedElement changes
   useEffect(() => {
     try {
@@ -185,14 +198,14 @@ export function App() {
 
   // Filter count computation
   const filteredCount = useMemo(() => {
+    const q = normalizeSearch(searchQuery);
     return ELEMENTS_DATA.filter((el) => {
       if (selectedCategory !== 'all' && el.category !== selectedCategory) return false;
       if (selectedBlock !== 'all' && el.block !== selectedBlock) return false;
       if (onlyRadioactive && !el.radioactive) return false;
-      if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase().trim();
-        const matchName = el.name.toLowerCase().includes(q);
-        const matchNameEn = el.nameEn.toLowerCase().includes(q);
+      if (q) {
+        const matchName = normalizeSearch(el.name).includes(q);
+        const matchNameEn = normalizeSearch(el.nameEn).includes(q);
         const matchSymbol = el.symbol.toLowerCase() === q || el.symbol.toLowerCase().startsWith(q);
         const matchNumber = el.atomicNumber.toString() === q;
         if (!matchName && !matchNameEn && !matchSymbol && !matchNumber) return false;

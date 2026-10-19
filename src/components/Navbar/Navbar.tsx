@@ -66,7 +66,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           <div className="hidden sm:block">
             <h1 className="font-extrabold text-sm sm:text-base text-white tracking-tight flex items-center gap-1.5">
               XTableLab
-              <span className="text-[10px] font-mono font-normal text-sky-400 bg-sky-950/80 border border-sky-800/50 px-1.5 py-0.2 rounded">
+              <span className="text-[10px] font-mono font-normal text-sky-400 bg-sky-950/80 border border-sky-800/50 px-1.5 py-0.5 rounded">
                 v{APP_VERSION}
               </span>
             </h1>

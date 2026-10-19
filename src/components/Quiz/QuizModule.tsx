@@ -147,7 +147,7 @@ function generateQuestion(cat: QuizCategory, elements: ElementData[]): Question 
   const pairs = [
     { a: 'Na', b: 'Cl', type: 'Enlace Iónico', why: 'ΔEN = 2.23 > 1.7 entre metal alcalino y halógeno.' },
     { a: 'H', b: 'O', type: 'Enlace Covalente Polar', why: 'ΔEN = 1.24 (entre 0.4 y 1.7), creando dipolo permanente.' },
-    { a: 'C', b: 'H', type: 'Enlace Covalente Apolar / Débilmente Polar', why: 'ΔEN = 0.35 < 0.4, compartición casi equitativa de carga.' },
+    { a: 'C', b: 'H', type: 'Enlace Covalente No Polar', why: 'ΔEN = 0.35 < 0.4, compartición casi equitativa de carga (débilmente polar / apolar).' },
     { a: 'K', b: 'F', type: 'Enlace Iónico', why: 'ΔEN = 3.16, transferencia total de electrones con formación de red cristalina.' },
     { a: 'N', b: 'N', type: 'Enlace Covalente No Polar', why: 'ΔEN = 0.00 entre átomos idénticos, compartición simétrica.' },
     { a: 'Cu', b: 'Zn', type: 'Enlace Metálico', why: 'Unión entre dos metales electropositivos con mar de electrones.' },

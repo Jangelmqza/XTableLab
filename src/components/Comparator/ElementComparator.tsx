@@ -22,13 +22,22 @@ export const ElementComparator: React.FC<ElementComparatorProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [showDropdown, setShowDropdown] = useState(false);
 
+  const normalize = (str: string) =>
+    str
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .trim();
+  const normalizedSearchTerm = normalize(searchTerm);
+
   const filteredSearch = elements
     .filter(
       (e) =>
         !comparisonList.some((c) => c.atomicNumber === e.atomicNumber) &&
-        (e.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          e.symbol.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          e.atomicNumber.toString() === searchTerm.trim())
+        (normalize(e.name).includes(normalizedSearchTerm) ||
+          normalize(e.nameEn).includes(normalizedSearchTerm) ||
+          e.symbol.toLowerCase().includes(normalizedSearchTerm) ||
+          e.atomicNumber.toString() === normalizedSearchTerm)
     )
     .slice(0, 8);
 
@@ -196,7 +205,15 @@ export const ElementComparator: React.FC<ElementComparatorProps> = ({
       ) : (
         <div className="space-y-6">
           {/* Comparison Cards Grid */}
-          <div className={`grid grid-cols-1 md:grid-cols-${comparisonList.length} gap-4`}>
+          <div
+            className={`grid grid-cols-1 ${
+              comparisonList.length === 1
+                ? 'md:grid-cols-1'
+                : comparisonList.length === 2
+                ? 'md:grid-cols-2'
+                : 'md:grid-cols-3'
+            } gap-4`}
+          >
             {comparisonList.map((el) => {
               const cat = CATEGORY_COLORS[el.category];
               return (
@@ -262,7 +279,11 @@ export const ElementComparator: React.FC<ElementComparatorProps> = ({
                     <div className="flex justify-between py-1 border-b border-slate-800/80">
                       <span className="text-slate-400">Densidad (298 K):</span>
                       <span className="font-mono font-semibold text-slate-200">
-                        {el.density !== null ? `${el.density.toFixed(2)} g/cm³` : 'N/D'}
+                        {el.density !== null
+                          ? el.density < 0.01
+                            ? `${(el.density * 1000).toFixed(3)} mg/cm³`
+                            : `${el.density.toFixed(2)} g/cm³`
+                          : 'N/D'}
                       </span>
                     </div>
                     <div className="flex justify-between py-1 border-b border-slate-800/80">

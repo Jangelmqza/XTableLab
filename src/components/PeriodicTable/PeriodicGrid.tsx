@@ -62,6 +62,15 @@ export const PeriodicGrid: React.FC<PeriodicGridProps> = ({
     return map;
   }, [elements]);
 
+  const normalizeSearch = (str: string) =>
+    str
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .trim();
+
+  const normalizedQuery = normalizeSearch(searchQuery);
+
   // Filter check helper
   const isElementFilteredOut = (el: ElementData): boolean => {
     if (selectedCategory !== 'all' && el.category !== selectedCategory) {
@@ -73,12 +82,13 @@ export const PeriodicGrid: React.FC<PeriodicGridProps> = ({
     if (onlyRadioactive && !el.radioactive) {
       return true;
     }
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase().trim();
-      const matchName = el.name.toLowerCase().includes(q);
-      const matchNameEn = el.nameEn.toLowerCase().includes(q);
-      const matchSymbol = el.symbol.toLowerCase() === q || el.symbol.toLowerCase().startsWith(q);
-      const matchNumber = el.atomicNumber.toString() === q;
+    if (normalizedQuery) {
+      const matchName = normalizeSearch(el.name).includes(normalizedQuery);
+      const matchNameEn = normalizeSearch(el.nameEn).includes(normalizedQuery);
+      const matchSymbol =
+        el.symbol.toLowerCase() === normalizedQuery ||
+        el.symbol.toLowerCase().startsWith(normalizedQuery);
+      const matchNumber = el.atomicNumber.toString() === normalizedQuery;
       if (!matchName && !matchNameEn && !matchSymbol && !matchNumber) {
         return true;
       }
