@@ -8,13 +8,13 @@
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4-06B6D4?logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-**[🇪🇸 Español](#español) · [🇬🇧 English](#english)**
+**[🇲🇽 Español](#español) · [🇬🇧 English](#english)**
 
 </div>
 
 ---
 
-## 🇪🇸 Español
+## 🇲🇽 Español
 
 ### ¿Por qué construí esto?
 
