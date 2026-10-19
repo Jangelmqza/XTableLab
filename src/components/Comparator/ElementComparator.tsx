@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import type { ElementData } from '../../types/element';
 import { CATEGORY_COLORS } from '../../data/elementsData';
+import { normalizeSearchText } from '../../utils/filters';
+import { classifyBond } from '../../utils/bonds';
 import { BohrModel } from '../ElementModal/BohrModel';
 import { Scale, Trash2, Zap } from 'lucide-react';
 
@@ -22,20 +24,14 @@ export const ElementComparator: React.FC<ElementComparatorProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [showDropdown, setShowDropdown] = useState(false);
 
-  const normalize = (str: string) =>
-    str
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .toLowerCase()
-      .trim();
-  const normalizedSearchTerm = normalize(searchTerm);
+  const normalizedSearchTerm = normalizeSearchText(searchTerm);
 
   const filteredSearch = elements
     .filter(
       (e) =>
         !comparisonList.some((c) => c.atomicNumber === e.atomicNumber) &&
-        (normalize(e.name).includes(normalizedSearchTerm) ||
-          normalize(e.nameEn).includes(normalizedSearchTerm) ||
+        (normalizeSearchText(e.name).includes(normalizedSearchTerm) ||
+          normalizeSearchText(e.nameEn).includes(normalizedSearchTerm) ||
           e.symbol.toLowerCase().includes(normalizedSearchTerm) ||
           e.atomicNumber.toString() === normalizedSearchTerm)
     )
@@ -55,35 +51,7 @@ export const ElementComparator: React.FC<ElementComparatorProps> = ({
       );
     }
 
-    const deltaEN = Math.abs(el1.electronegativity - el2.electronegativity);
-    let bondType = '';
-    let explanation = '';
-    let badgeColor = '';
-
-    const isMetal1 = el1.category.includes('metal') && !el1.category.includes('metalloid');
-    const isMetal2 = el2.category.includes('metal') && !el2.category.includes('metalloid');
-
-    if (isMetal1 && isMetal2) {
-      bondType = 'Enlace Metálico';
-      badgeColor = 'bg-amber-500/20 text-amber-300 border-amber-500/40';
-      explanation = `Ambos elementos (${el1.symbol} y ${el2.symbol}) son metales electropositivos. Al unirse, forman una red cristalina de cationes inmersos en un mar de electrones deslocalizados de valencia, dando lugar a una aleación o compuesto intermetálico con alta conductividad térmica y eléctrica.`;
-    } else if (deltaEN > 1.7) {
-      bondType = 'Enlace Iónico Predominante (ΔEN > 1.7)';
-      badgeColor = 'bg-rose-500/20 text-rose-300 border-rose-500/40';
-      const donor = el1.electronegativity < el2.electronegativity ? el1 : el2;
-      const receiver = donor === el1 ? el2 : el1;
-      explanation = `La gran diferencia de electronegatividad (ΔEN = ${deltaEN.toFixed(2)}) propicia la transferencia completa de electrones: ${donor.name} se oxida formando un catión y ${receiver.name} se reduce formando un anión. La atracción electrostática multidireccional genera una red cristalina salina con alto punto de fusión.`;
-    } else if (deltaEN >= 0.4) {
-      bondType = 'Enlace Covalente Polar (0.4 ≤ ΔEN ≤ 1.7)';
-      badgeColor = 'bg-sky-500/20 text-sky-300 border-sky-500/40';
-      const negative = el1.electronegativity > el2.electronegativity ? el1 : el2;
-      const positive = negative === el1 ? el2 : el1;
-      explanation = `La diferencia moderada de electronegatividad (ΔEN = ${deltaEN.toFixed(2)}) genera una compartición asimétrica del par electrónico. Se produce un momento dipolar permanente con densidad de carga parcial negativa (δ⁻) sobre ${negative.name} y parcial positiva (δ⁺) sobre ${positive.name}.`;
-    } else {
-      bondType = 'Enlace Covalente No Polar / Puro (ΔEN < 0.4)';
-      badgeColor = 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40';
-      explanation = `Con una diferencia de electronegatividad mínima (ΔEN = ${deltaEN.toFixed(2)}), los electrones compartidos se distribuyen de manera simétrica y homogénea entre ambos núcleos, sin dipolos permanentes apreciables.`;
-    }
+    const bond = classifyBond(el1, el2);
 
     return (
       <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-3">
@@ -94,8 +62,8 @@ export const ElementComparator: React.FC<ElementComparatorProps> = ({
               Predicción de Enlace: {el1.name} + {el2.name}
             </h3>
           </div>
-          <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${badgeColor}`}>
-            {bondType}
+          <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${bond.badgeClass}`}>
+            {bond.title}
           </span>
         </div>
 
@@ -110,12 +78,14 @@ export const ElementComparator: React.FC<ElementComparatorProps> = ({
           </div>
           <div>
             <span className="text-slate-400">Diferencia |ΔEN|:</span>{' '}
-            <strong className="text-amber-400 font-mono text-sm">{deltaEN.toFixed(2)}</strong>
+            <strong className="text-amber-400 font-mono text-sm">
+              {bond.deltaEN.toFixed(2)} ({bond.ionicPercentage}% iónico)
+            </strong>
           </div>
         </div>
 
         <p className="text-xs text-slate-300 leading-relaxed bg-slate-950/40 p-3 rounded-xl border border-slate-800">
-          {explanation}
+          {bond.description}
         </p>
       </div>
     );

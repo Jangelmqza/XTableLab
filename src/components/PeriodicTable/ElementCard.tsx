@@ -1,6 +1,12 @@
+import React from 'react';
 import type { ElementData, TrendProperty } from '../../types/element';
 import { CATEGORY_COLORS, BLOCK_COLORS } from '../../data/elementsData';
-import { getTrendColor, getNormalizedTrendValue, getPhaseAtTemperature } from '../../utils/trends';
+import {
+  getTrendColor,
+  getNormalizedTrendValue,
+  getPhaseAtTemperature,
+  type HeatmapPalette,
+} from '../../utils/trends';
 import { Radiation } from 'lucide-react';
 
 export type TableDisplayMode = 'category' | 'block' | 'phase' | 'heatmap';
@@ -10,6 +16,9 @@ interface ElementCardProps {
   displayMode: TableDisplayMode;
   activeTrend: TrendProperty;
   allElements: ElementData[];
+  minTrendVal?: number;
+  maxTrendVal?: number;
+  heatmapPalette?: HeatmapPalette;
   temperatureK: number;
   isFilteredOut: boolean;
   isSelected: boolean;
@@ -19,11 +28,14 @@ interface ElementCardProps {
   onGridKeyDown?: (e: React.KeyboardEvent, z: number) => void;
 }
 
-export const ElementCard: React.FC<ElementCardProps> = ({
+const ElementCardComponent: React.FC<ElementCardProps> = ({
   element,
   displayMode,
   activeTrend,
   allElements,
+  minTrendVal,
+  maxTrendVal,
+  heatmapPalette = 'standard',
   temperatureK,
   isFilteredOut,
   isSelected,
@@ -83,8 +95,14 @@ export const ElementCard: React.FC<ElementCardProps> = ({
       extraLabel = 'Sintético';
     }
   } else if (displayMode === 'heatmap') {
-    const norm = getNormalizedTrendValue(element, activeTrend, allElements);
-    const tc = getTrendColor(norm);
+    const norm = getNormalizedTrendValue(
+      element,
+      activeTrend,
+      allElements,
+      minTrendVal,
+      maxTrendVal
+    );
+    const tc = getTrendColor(norm, heatmapPalette);
     cellStyle = {
       backgroundColor: tc.bg,
       borderColor: tc.border,
@@ -100,8 +118,10 @@ export const ElementCard: React.FC<ElementCardProps> = ({
       else if (activeTrend === 'atomicRadius') extraLabel = `${val} pm`;
       else if (activeTrend === 'ionizationEnergy') extraLabel = `${val.toFixed(1)} eV`;
       else if (activeTrend === 'electronAffinity') extraLabel = `${val.toFixed(2)} eV`;
-      else if (activeTrend === 'density') extraLabel = val < 0.01 ? `${(val * 1000).toFixed(1)} mg` : `${val.toFixed(2)} g`;
-      else if (activeTrend === 'meltingPoint' || activeTrend === 'boilingPoint') extraLabel = `${Math.round(val)} K`;
+      else if (activeTrend === 'density')
+        extraLabel = val < 0.01 ? `${(val * 1000).toFixed(1)} mg` : `${val.toFixed(2)} g`;
+      else if (activeTrend === 'meltingPoint' || activeTrend === 'boilingPoint')
+        extraLabel = `${Math.round(val)} K`;
       else extraLabel = val.toFixed(1);
     }
   }
@@ -175,3 +195,5 @@ export const ElementCard: React.FC<ElementCardProps> = ({
     </div>
   );
 };
+
+export const ElementCard = React.memo(ElementCardComponent);

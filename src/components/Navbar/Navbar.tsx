@@ -55,8 +55,17 @@ export const Navbar: React.FC<NavbarProps> = ({
       <div className="max-w-7xl mx-auto px-3 sm:px-6 h-16 flex items-center justify-between gap-3">
         {/* Logo and Brand */}
         <div
+          role="button"
+          tabIndex={0}
           onClick={() => onTabChange('table')}
-          className="flex items-center gap-2.5 cursor-pointer group shrink-0"
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              onTabChange('table');
+            }
+          }}
+          aria-label="Ir a la Tabla Periódica principal"
+          className="flex items-center gap-2.5 cursor-pointer group shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 rounded-xl"
         >
           <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-sky-600 via-indigo-600 to-rose-500 p-0.5 shadow-lg shadow-sky-500/20 group-hover:scale-105 transition-transform">
             <div className="w-full h-full bg-slate-950 rounded-[10px] flex items-center justify-center">
@@ -75,7 +84,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         </div>
 
         {/* Navigation Tabs */}
-        <nav className="flex items-center gap-1 overflow-x-auto no-scrollbar py-1">
+        <nav aria-label="Módulos principales de XTableLab" className="flex items-center gap-1 overflow-x-auto no-scrollbar py-1">
           {tabs.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
@@ -83,6 +92,8 @@ export const Navbar: React.FC<NavbarProps> = ({
               <button
                 key={tab.id}
                 onClick={() => onTabChange(tab.id as AppTab)}
+                aria-current={isActive ? 'page' : undefined}
+                aria-label={tab.label}
                 className={`relative flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all select-none ${
                   isActive
                     ? 'bg-sky-600 text-white shadow-lg shadow-sky-600/30'

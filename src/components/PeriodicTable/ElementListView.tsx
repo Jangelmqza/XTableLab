@@ -2,13 +2,22 @@ import React, { useState, useMemo } from 'react';
 import type { ElementData, ElementCategory, ElementBlock, TrendProperty } from '../../types/element';
 import type { TableDisplayMode } from './ElementCard';
 import { CATEGORY_COLORS, BLOCK_COLORS, PHASE_NAMES } from '../../data/elementsData';
-import { getPhaseAtTemperature, getTrendColor, getNormalizedTrendValue } from '../../utils/trends';
+import {
+  getPhaseAtTemperature,
+  getTrendColor,
+  getNormalizedTrendValue,
+  type HeatmapPalette,
+} from '../../utils/trends';
+import { filterElements } from '../../utils/filters';
 import { Radiation, ArrowUpDown, Scale, Eye } from 'lucide-react';
 
 interface ElementListViewProps {
   elements: ElementData[];
   displayMode: TableDisplayMode;
   activeTrend: TrendProperty;
+  minTrendVal?: number;
+  maxTrendVal?: number;
+  heatmapPalette?: HeatmapPalette;
   temperatureK: number;
   selectedCategory: ElementCategory | 'all';
   selectedBlock: ElementBlock | 'all';
@@ -26,6 +35,9 @@ export const ElementListView: React.FC<ElementListViewProps> = ({
   elements,
   displayMode,
   activeTrend,
+  minTrendVal,
+  maxTrendVal,
+  heatmapPalette = 'standard',
   temperatureK,
   selectedCategory,
   selectedBlock,
@@ -39,28 +51,13 @@ export const ElementListView: React.FC<ElementListViewProps> = ({
   const [sortBy, setSortBy] = useState<SortField>('atomicNumber');
   const [sortAsc, setSortAsc] = useState(true);
 
-  // Filter elements
+  // Filter elements using unified utility
   const filteredElements = useMemo(() => {
-    const normalize = (str: string) =>
-      str
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '')
-        .toLowerCase()
-        .trim();
-    const q = normalize(searchQuery);
-
-    return elements.filter((el) => {
-      if (selectedCategory !== 'all' && el.category !== selectedCategory) return false;
-      if (selectedBlock !== 'all' && el.block !== selectedBlock) return false;
-      if (onlyRadioactive && !el.radioactive) return false;
-      if (q) {
-        const matchName = normalize(el.name).includes(q);
-        const matchNameEn = normalize(el.nameEn).includes(q);
-        const matchSymbol = el.symbol.toLowerCase() === q || el.symbol.toLowerCase().startsWith(q);
-        const matchNumber = el.atomicNumber.toString() === q;
-        if (!matchName && !matchNameEn && !matchSymbol && !matchNumber) return false;
-      }
-      return true;
+    return filterElements(elements, {
+      selectedCategory,
+      selectedBlock,
+      onlyRadioactive,
+      searchQuery,
     });
   }, [elements, selectedCategory, selectedBlock, onlyRadioactive, searchQuery]);
 
@@ -166,8 +163,14 @@ export const ElementListView: React.FC<ElementListViewProps> = ({
             badgeText = block.text;
             badgeLabel = block.name;
           } else if (displayMode === 'heatmap') {
-            const norm = getNormalizedTrendValue(el, activeTrend, elements);
-            const heatColor = getTrendColor(norm);
+            const norm = getNormalizedTrendValue(
+              el,
+              activeTrend,
+              elements,
+              minTrendVal,
+              maxTrendVal
+            );
+            const heatColor = getTrendColor(norm, heatmapPalette);
             badgeColor = 'bg-slate-800';
             badgeText = heatColor.text;
             badgeLabel = el[activeTrend] !== null && el[activeTrend] !== undefined
@@ -178,8 +181,20 @@ export const ElementListView: React.FC<ElementListViewProps> = ({
           return (
             <div
               key={el.atomicNumber}
+              role="button"
+              tabIndex={0}
+              aria-label={`Ver detalles de ${el.name} (${el.symbol}), Z = ${el.atomicNumber}`}
               onClick={() => onSelectElement(el)}
-              className={`group relative p-3 rounded-xl border bg-slate-900/90 hover:bg-slate-800/90 transition-all cursor-pointer shadow-md hover:shadow-sky-500/10 hover:border-sky-500/50 flex flex-col justify-between ${
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  onSelectElement(el);
+                } else if (e.key === 'c' || e.key === 'C') {
+                  e.preventDefault();
+                  onToggleCompare(el);
+                }
+              }}
+              className={`group relative p-3 rounded-xl border bg-slate-900/90 hover:bg-slate-800/90 transition-all cursor-pointer shadow-md hover:shadow-sky-500/10 hover:border-sky-500/50 focus-visible:ring-2 focus-visible:ring-sky-500 focus:outline-none flex flex-col justify-between ${
                 isSelected
                   ? 'ring-2 ring-sky-400 border-sky-400 bg-sky-950/40'
                   : 'border-slate-800'

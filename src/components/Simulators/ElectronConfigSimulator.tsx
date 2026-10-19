@@ -1,42 +1,16 @@
 import { useState, useEffect } from 'react';
 import type { ElementData } from '../../types/element';
+import {
+  calculateOrbitalBoxes,
+  formatConfigurationString,
+  getAnomalyNote,
+} from '../../utils/electronConfig';
 import { Zap, Play, Pause, SkipForward, RotateCcw, Sparkles, AlertCircle } from 'lucide-react';
 
 interface ElectronConfigSimulatorProps {
   elements: ElementData[];
   initialElement?: ElementData | null;
 }
-
-interface Sublevel {
-  name: string;
-  n: number;
-  l: number; // 0=s, 1=p, 2=d, 3=f
-  capacity: number;
-  orbitalsCount: number;
-}
-
-// Aufbau filling sequence according to (n + l) rule
-const AUFBAU_SEQUENCE: Sublevel[] = [
-  { name: '1s', n: 1, l: 0, capacity: 2, orbitalsCount: 1 },
-  { name: '2s', n: 2, l: 0, capacity: 2, orbitalsCount: 1 },
-  { name: '2p', n: 2, l: 1, capacity: 6, orbitalsCount: 3 },
-  { name: '3s', n: 3, l: 0, capacity: 2, orbitalsCount: 1 },
-  { name: '3p', n: 3, l: 1, capacity: 6, orbitalsCount: 3 },
-  { name: '4s', n: 4, l: 0, capacity: 2, orbitalsCount: 1 },
-  { name: '3d', n: 3, l: 2, capacity: 10, orbitalsCount: 5 },
-  { name: '4p', n: 4, l: 1, capacity: 6, orbitalsCount: 3 },
-  { name: '5s', n: 5, l: 0, capacity: 2, orbitalsCount: 1 },
-  { name: '4d', n: 4, l: 2, capacity: 10, orbitalsCount: 5 },
-  { name: '5p', n: 5, l: 1, capacity: 6, orbitalsCount: 3 },
-  { name: '6s', n: 6, l: 0, capacity: 2, orbitalsCount: 1 },
-  { name: '4f', n: 4, l: 3, capacity: 14, orbitalsCount: 7 },
-  { name: '5d', n: 5, l: 2, capacity: 10, orbitalsCount: 5 },
-  { name: '6p', n: 6, l: 1, capacity: 6, orbitalsCount: 3 },
-  { name: '7s', n: 7, l: 0, capacity: 2, orbitalsCount: 1 },
-  { name: '5f', n: 5, l: 3, capacity: 14, orbitalsCount: 7 },
-  { name: '6d', n: 6, l: 2, capacity: 10, orbitalsCount: 5 },
-  { name: '7p', n: 7, l: 1, capacity: 6, orbitalsCount: 3 },
-];
 
 export const ElectronConfigSimulator: React.FC<ElectronConfigSimulatorProps> = ({
   elements,
@@ -46,94 +20,26 @@ export const ElectronConfigSimulator: React.FC<ElectronConfigSimulatorProps> = (
     initialElement ? initialElement.atomicNumber : 11 // Sodium default
   );
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
+  const [configMode, setConfigMode] = useState<'real' | 'aufbau'>('real');
+  const [notationOrder, setNotationOrder] = useState<'filling' | 'shell'>('filling');
 
-  // Auto-play animation
+  // Auto-play animation cleanly without synchronous setState in useEffect
   useEffect(() => {
-    let timer: any = null;
-    if (isPlaying) {
-      timer = setInterval(() => {
-        setTotalElectrons((prev) => {
-          if (prev >= 118) {
-            setIsPlaying(false);
-            return prev;
-          }
-          return prev + 1;
-        });
-      }, 350);
-    }
-    return () => clearInterval(timer);
-  }, [isPlaying]);
+    if (!isPlaying) return;
+    const timer = setTimeout(() => {
+      if (totalElectrons >= 118) {
+        setIsPlaying(false);
+      } else {
+        setTotalElectrons((prev) => Math.min(118, prev + 1));
+      }
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [isPlaying, totalElectrons]);
 
   const currentElement = elements.find((e) => e.atomicNumber === totalElectrons) || null;
-
-  // Real-world quantum anomalies
-  const getAnomalyNote = (z: number): string | null => {
-    if (z === 24) return 'Cromo (Z=24): Configuración anómala [Ar] 4s¹ 3d⁵ en lugar de 4s² 3d⁴. La estabilidad adicional por energía de canje de la subcapa 3d exactamente semi-llena promueve un electrón 4s hacia el orbital 3d.';
-    if (z === 29) return 'Cobre (Z=29): Configuración anómala [Ar] 4s¹ 3d¹⁰ en lugar de 4s² 3d⁹. La subcapa 3d completamente llena ofrece una simetría esférica y menor apantallamiento que estabiliza el átomo.';
-    if (z === 42) return 'Molibdeno (Z=42): Configuración [Kr] 5s¹ 4d⁵ análoga al cromo por subcapa d semi-llena.';
-    if (z === 46) return 'Paladio (Z=46): Configuración [Kr] 4d¹⁰ 5s⁰. Ambos electrones 5s pasan a llenar la capa 4d.';
-    if (z === 47) return 'Plata (Z=47): Configuración [Kr] 5s¹ 4d¹⁰ por subcapa 4d completa.';
-    if (z === 79) return 'Oro (Z=79): Configuración [Xe] 4f¹⁴ 5d¹⁰ 6s¹ estabilizada por efectos relativistas y subcapa 5d llena.';
-    return null;
-  };
-
   const anomaly = getAnomalyNote(totalElectrons);
-
-  // Calculate electron distribution across sublevels obeying Aufbau and Hund's rule
-  const calculateOrbitalBoxes = (numElectrons: number) => {
-    let remaining = numElectrons;
-    const distribution: {
-      sublevel: Sublevel;
-      electronsCount: number;
-      orbitals: { up: boolean; down: boolean }[];
-    }[] = [];
-
-    for (const sub of AUFBAU_SEQUENCE) {
-      if (remaining <= 0) break;
-
-      const count = Math.min(remaining, sub.capacity);
-      remaining -= count;
-
-      // Fill orbital boxes using Hund's Rule:
-      // First pass: put 1 spin UP in each orbital
-      // Second pass: put spin DOWN in each orbital
-      const boxes: { up: boolean; down: boolean }[] = Array.from(
-        { length: sub.orbitalsCount },
-        () => ({ up: false, down: false })
-      );
-
-      for (let i = 0; i < count; i++) {
-        if (i < sub.orbitalsCount) {
-          boxes[i].up = true; // Hund's parallel spin
-        } else {
-          boxes[i - sub.orbitalsCount].down = true; // Pauli pairing
-        }
-      }
-
-      distribution.push({
-        sublevel: sub,
-        electronsCount: count,
-        orbitals: boxes,
-      });
-    }
-
-    return distribution;
-  };
-
-  const orbitalData = calculateOrbitalBoxes(totalElectrons);
-
-  // Formatted string: 1s² 2s² 2p⁶...
-  const configString = orbitalData
-    .map((item) => `${item.sublevel.name}${toSuperscript(item.electronsCount)}`)
-    .join(' ');
-
-  function toSuperscript(num: number): string {
-    const digits: Record<string, string> = {
-      '0': '⁰', '1': '¹', '2': '²', '3': '³', '4': '⁴',
-      '5': '⁵', '6': '⁶', '7': '⁷', '8': '⁸', '9': '⁹',
-    };
-    return num.toString().split('').map((d) => digits[d] || d).join('');
-  }
+  const orbitalData = calculateOrbitalBoxes(totalElectrons, configMode);
+  const configString = formatConfigurationString(orbitalData, notationOrder);
 
   return (
     <div className="space-y-6">
@@ -142,15 +48,43 @@ export const ElectronConfigSimulator: React.FC<ElectronConfigSimulatorProps> = (
         <div>
           <h2 className="text-xl font-bold text-white flex items-center gap-2">
             <Zap className="w-6 h-6 text-amber-400" />
-            Configuración Electrónica Cuántica (Aufbau & Moeller)
+            Configuración Electrónica Cuántica (Aufbau &amp; Moeller)
           </h2>
           <p className="text-xs text-slate-400 mt-1">
-            Visualiza el llenado sistemático de orbitales atómicos según el principio de Aufbau, la regla de máxima multiplicidad de Hund y el principio de exclusión de Pauli.
+            Visualiza el llenado sistemático de orbitales atómicos según el principio de Aufbau, la regla de máxima multiplicidad de Hund, el principio de exclusión de Pauli y las anomalías cuánticas reales.
           </p>
         </div>
 
         {/* Stepper & Animation Controls */}
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Mode Switcher: Real vs Idealized Aufbau */}
+          <div className="flex items-center bg-slate-950 p-1 rounded-xl border border-slate-800 text-xs">
+            <button
+              type="button"
+              onClick={() => setConfigMode('real')}
+              className={`px-2.5 py-1 rounded-lg font-semibold transition-colors ${
+                configMode === 'real'
+                  ? 'bg-emerald-600 text-white'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+              title="Muestra la configuración experimental real (incluyendo anomalías como Cr, Cu, Pd, Au)"
+            >
+              Real (Experimental)
+            </button>
+            <button
+              type="button"
+              onClick={() => setConfigMode('aufbau')}
+              className={`px-2.5 py-1 rounded-lg font-semibold transition-colors ${
+                configMode === 'aufbau'
+                  ? 'bg-indigo-600 text-white'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+              title="Muestra el llenado ideal estricto según la regla de las diagonales (n + l)"
+            >
+              Aufbau Teórico
+            </button>
+          </div>
+
           <button
             onClick={() => setIsPlaying(!isPlaying)}
             className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all ${
@@ -215,6 +149,7 @@ export const ElectronConfigSimulator: React.FC<ElectronConfigSimulatorProps> = (
               { z: 24, label: 'Cr (Anomalía)' },
               { z: 26, label: 'Fe (3d⁶)' },
               { z: 29, label: 'Cu (Anomalía)' },
+              { z: 46, label: 'Pd (5s⁰)' },
               { z: 79, label: 'Au (Oro)' },
             ].map((p) => (
               <button
@@ -247,6 +182,7 @@ export const ElectronConfigSimulator: React.FC<ElectronConfigSimulatorProps> = (
             min="1"
             max="118"
             value={totalElectrons}
+            aria-label="Seleccionar número de electrones (Z)"
             onChange={(e) => {
               setIsPlaying(false);
               setTotalElectrons(parseInt(e.target.value, 10));
@@ -255,19 +191,61 @@ export const ElectronConfigSimulator: React.FC<ElectronConfigSimulatorProps> = (
           />
         </div>
 
-        {/* Written Configuration */}
-        <div className="p-3 bg-slate-950/80 rounded-xl border border-slate-800 font-mono text-sm text-sky-300 overflow-x-auto whitespace-nowrap shadow-inner">
-          <span className="text-slate-500 mr-2 text-xs font-sans">Configuración electrónica:</span>
-          <span className="font-bold">{configString}</span>
+        {/* Written Configuration with notation toggle */}
+        <div
+          aria-live="polite"
+          className="p-3 bg-slate-950/80 rounded-xl border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2 shadow-inner"
+        >
+          <div className="font-mono text-sm text-sky-300 overflow-x-auto whitespace-nowrap">
+            <span className="text-slate-400 mr-2 text-xs font-sans">
+              Configuración ({configMode === 'real' ? 'experimental' : 'Aufbau ideal'}):
+            </span>
+            <span className="font-bold">{configString}</span>
+            {currentElement && (
+              <span className="ml-3 text-xs text-indigo-300">
+                ({currentElement.electronConfiguration})
+              </span>
+            )}
+          </div>
+
+          <div className="flex items-center gap-1 text-[11px] shrink-0">
+            <span className="text-slate-500 mr-1">Orden:</span>
+            <button
+              type="button"
+              onClick={() => setNotationOrder('filling')}
+              className={`px-2 py-0.5 rounded border ${
+                notationOrder === 'filling'
+                  ? 'bg-sky-950 text-sky-300 border-sky-700 font-semibold'
+                  : 'bg-slate-900 text-slate-400 border-slate-800'
+              }`}
+            >
+              Llenado (n+l)
+            </button>
+            <button
+              type="button"
+              onClick={() => setNotationOrder('shell')}
+              className={`px-2 py-0.5 rounded border ${
+                notationOrder === 'shell'
+                  ? 'bg-sky-950 text-sky-300 border-sky-700 font-semibold'
+                  : 'bg-slate-900 text-slate-400 border-slate-800'
+              }`}
+            >
+              Por capa (n)
+            </button>
+          </div>
         </div>
 
         {/* Quantum Anomaly Alert if triggered */}
         {anomaly && (
-          <div className="bg-amber-950/30 border border-amber-500/50 rounded-xl p-3.5 flex items-start gap-2.5 text-xs text-amber-200">
+          <div
+            role="status"
+            aria-live="polite"
+            className="bg-amber-950/30 border border-amber-500/50 rounded-xl p-3.5 flex items-start gap-2.5 text-xs text-amber-200"
+          >
             <AlertCircle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
             <div>
               <strong className="block text-amber-300 font-semibold mb-0.5">
-                Excepción al Principio de Aufbau Detectada:
+                Excepción al Principio de Aufbau Detectada ({configMode === 'real' ? 'Aplicada en el diagrama' : 'Modo teórico activo — cambia a Real para verla en las cajas'}):
               </strong>
               <span>{anomaly}</span>
             </div>
@@ -283,9 +261,9 @@ export const ElectronConfigSimulator: React.FC<ElectronConfigSimulatorProps> = (
         </h3>
 
         <div className="flex flex-wrap gap-4 items-end">
-          {orbitalData.map((item, idx) => (
+          {orbitalData.map((item) => (
             <div
-              key={idx}
+              key={item.sublevel.name}
               className="flex flex-col items-center bg-slate-950/60 p-2.5 rounded-xl border border-slate-800/80"
             >
               {/* Sublevel Label */}
@@ -321,7 +299,7 @@ export const ElectronConfigSimulator: React.FC<ElectronConfigSimulatorProps> = (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-3 border-t border-slate-800/80 text-xs text-slate-400">
           <div className="bg-slate-950/50 p-2.5 rounded-lg border border-slate-800">
             <strong className="text-slate-200 block mb-1">Principio de Aufbau:</strong>
-            Los electrones ocupan primero los orbitales de menor energía disponible siguiendo la regla de las diagonales (n + l).
+            Los electrones ocupan primero los orbitales de menor energía disponible siguiendo la regla de las diagonales (n + l), con excepciones en metales de transición por estabilidad de subcapas d/f.
           </div>
           <div className="bg-slate-950/50 p-2.5 rounded-lg border border-slate-800">
             <strong className="text-slate-200 block mb-1">Regla de Hund:</strong>
@@ -329,7 +307,7 @@ export const ElectronConfigSimulator: React.FC<ElectronConfigSimulatorProps> = (
           </div>
           <div className="bg-slate-950/50 p-2.5 rounded-lg border border-slate-800">
             <strong className="text-slate-200 block mb-1">Principio de Pauli:</strong>
-            Dos electrones en un mismo orbital no pueden tener los mismos números cuánticos; deben tener espines opuestos (+½ y -½).
+            Dos electrones en un mismo orbital no pueden tener los mismos cuatro números cuánticos; deben poseer espines antiparalelos (+½ y -½).
           </div>
         </div>
       </div>

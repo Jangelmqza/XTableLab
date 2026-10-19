@@ -1,16 +1,27 @@
 import React from 'react';
 import type { TrendProperty } from '../../types/element';
-import { TREND_INFO } from '../../utils/trends';
+import { TREND_INFO, type HeatmapPalette } from '../../utils/trends';
 import { Info, TrendingUp } from 'lucide-react';
 
 interface HeatmapLegendProps {
   trend: TrendProperty;
   minVal: number;
   maxVal: number;
+  palette?: HeatmapPalette;
 }
 
-export const HeatmapLegend: React.FC<HeatmapLegendProps> = ({ trend, minVal, maxVal }) => {
+export const HeatmapLegend: React.FC<HeatmapLegendProps> = ({
+  trend,
+  minVal,
+  maxVal,
+  palette = 'standard',
+}) => {
   const info = TREND_INFO[trend];
+
+  const gradientStyle =
+    palette === 'colorblind'
+      ? 'linear-gradient(to right, rgb(30, 58, 138), rgb(14, 116, 144), rgb(161, 98, 7), rgb(250, 204, 21))'
+      : 'linear-gradient(to right, rgb(76, 29, 149), rgb(2, 132, 199), rgb(5, 150, 105), rgb(217, 119, 6), rgb(225, 29, 72))';
 
   return (
     <div className="bg-slate-900/90 border border-slate-700/60 rounded-xl p-4 shadow-xl backdrop-blur-md mb-4 text-xs sm:text-sm">
@@ -36,14 +47,13 @@ export const HeatmapLegend: React.FC<HeatmapLegendProps> = ({ trend, minVal, max
             <span className="text-slate-400 block">Mínimo registrado</span>
             <span className="font-mono font-medium text-indigo-300">{info.format(minVal)}</span>
           </div>
-          <div className="w-48 h-3.5 rounded-full shadow-inner border border-slate-700 overflow-hidden relative"
-            style={{
-              background: 'linear-gradient(to right, rgb(76, 29, 149), rgb(2, 132, 199), rgb(5, 150, 105), rgb(217, 119, 6), rgb(225, 29, 72))'
-            }}
+          <div
+            className="w-48 h-3.5 rounded-full shadow-inner border border-slate-700 overflow-hidden relative"
+            style={{ background: gradientStyle }}
           />
           <div>
             <span className="text-slate-400 block">Máximo registrado</span>
-            <span className="font-mono font-medium text-rose-300">{info.format(maxVal)}</span>
+            <span className="font-mono font-medium text-amber-300">{info.format(maxVal)}</span>
           </div>
         </div>
       </div>

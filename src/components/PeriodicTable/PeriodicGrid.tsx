@@ -2,11 +2,16 @@ import React from 'react';
 import type { ElementData, ElementCategory, ElementBlock, TrendProperty } from '../../types/element';
 import type { TableDisplayMode } from './ElementCard';
 import { ElementCard } from './ElementCard';
+import { matchesElementFilter, normalizeSearchText } from '../../utils/filters';
+import type { HeatmapPalette } from '../../utils/trends';
 
 interface PeriodicGridProps {
   elements: ElementData[];
   displayMode: TableDisplayMode;
   activeTrend: TrendProperty;
+  minTrendVal?: number;
+  maxTrendVal?: number;
+  heatmapPalette?: HeatmapPalette;
   temperatureK: number;
   selectedCategory: ElementCategory | 'all';
   selectedBlock: ElementBlock | 'all';
@@ -20,22 +25,22 @@ interface PeriodicGridProps {
 }
 
 const GROUP_LABELS = [
-  { num: 1, cas: 'IA', name: 'Alcalinos' },
-  { num: 2, cas: 'IIA', name: 'Alcalinotérreos' },
-  { num: 3, cas: 'IIIB', name: 'Escandio' },
-  { num: 4, cas: 'IVB', name: 'Titanio' },
-  { num: 5, cas: 'VB', name: 'Vanadio' },
-  { num: 6, cas: 'VIB', name: 'Cromo' },
-  { num: 7, cas: 'VIIB', name: 'Manganeso' },
-  { num: 8, cas: 'VIII', name: 'Hierro' },
-  { num: 9, cas: 'VIII', name: 'Cobalto' },
-  { num: 10, cas: 'VIII', name: 'Níquel' },
-  { num: 11, cas: 'IB', name: 'Cobre' },
-  { num: 12, cas: 'IIB', name: 'Cinc' },
-  { num: 13, cas: 'IIIA', name: 'Boroideos' },
+  { num: 1, cas: 'IA', name: 'Metales Alcalinos (excepto H)' },
+  { num: 2, cas: 'IIA', name: 'Metales Alcalinotérreos' },
+  { num: 3, cas: 'IIIB', name: 'Familia del Escandio' },
+  { num: 4, cas: 'IVB', name: 'Familia del Titanio' },
+  { num: 5, cas: 'VB', name: 'Familia del Vanadio' },
+  { num: 6, cas: 'VIB', name: 'Familia del Cromo' },
+  { num: 7, cas: 'VIIB', name: 'Familia del Manganeso' },
+  { num: 8, cas: 'VIII', name: 'Familia del Hierro' },
+  { num: 9, cas: 'VIII', name: 'Familia del Cobalto' },
+  { num: 10, cas: 'VIII', name: 'Familia del Níquel' },
+  { num: 11, cas: 'IB', name: 'Metales de Acuñar (Cobre)' },
+  { num: 12, cas: 'IIB', name: 'Familia del Cinc' },
+  { num: 13, cas: 'IIIA', name: 'Térreos / Boroideos' },
   { num: 14, cas: 'IVA', name: 'Carbonoideos' },
-  { num: 15, cas: 'VA', name: 'Nitrogenoideos' },
-  { num: 16, cas: 'VIA', name: 'Calcógenos' },
+  { num: 15, cas: 'VA', name: 'Nitrogenoideos (Pnictógenos)' },
+  { num: 16, cas: 'VIA', name: 'Calcógenos (Anfígenos)' },
   { num: 17, cas: 'VIIA', name: 'Halógenos' },
   { num: 18, cas: 'VIIIA', name: 'Gases Nobles' },
 ];
@@ -44,6 +49,9 @@ export const PeriodicGrid: React.FC<PeriodicGridProps> = ({
   elements,
   displayMode,
   activeTrend,
+  minTrendVal,
+  maxTrendVal,
+  heatmapPalette = 'standard',
   temperatureK,
   selectedCategory,
   selectedBlock,
@@ -62,132 +70,115 @@ export const PeriodicGrid: React.FC<PeriodicGridProps> = ({
     return map;
   }, [elements]);
 
-  const normalizeSearch = (str: string) =>
-    str
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .toLowerCase()
-      .trim();
-
-  const normalizedQuery = normalizeSearch(searchQuery);
+  const normalizedQuery = normalizeSearchText(searchQuery);
 
   // Filter check helper
   const isElementFilteredOut = (el: ElementData): boolean => {
-    if (selectedCategory !== 'all' && el.category !== selectedCategory) {
-      return true;
-    }
-    if (selectedBlock !== 'all' && el.block !== selectedBlock) {
-      return true;
-    }
-    if (onlyRadioactive && !el.radioactive) {
-      return true;
-    }
-    if (normalizedQuery) {
-      const matchName = normalizeSearch(el.name).includes(normalizedQuery);
-      const matchNameEn = normalizeSearch(el.nameEn).includes(normalizedQuery);
-      const matchSymbol =
-        el.symbol.toLowerCase() === normalizedQuery ||
-        el.symbol.toLowerCase().startsWith(normalizedQuery);
-      const matchNumber = el.atomicNumber.toString() === normalizedQuery;
-      if (!matchName && !matchNameEn && !matchSymbol && !matchNumber) {
-        return true;
-      }
-    }
-    return false;
+    return !matchesElementFilter(
+      el,
+      { selectedCategory, selectedBlock, onlyRadioactive, searchQuery },
+      normalizedQuery
+    );
   };
 
   // 2D Spatial & Numerical Keyboard Navigation Helper
-  const getNextElementZ = (
-    currentZ: number,
-    direction: 'up' | 'down' | 'left' | 'right'
-  ): number => {
-    const current = elementsByZ.get(currentZ);
-    if (!current) return currentZ;
+  const getNextElementZ = React.useCallback(
+    (
+      currentZ: number,
+      direction: 'up' | 'down' | 'left' | 'right'
+    ): number => {
+      const current = elementsByZ.get(currentZ);
+      if (!current) return currentZ;
 
-    if (direction === 'right') {
-      return currentZ < 118 ? currentZ + 1 : 1;
-    }
-    if (direction === 'left') {
-      return currentZ > 1 ? currentZ - 1 : 118;
-    }
-    if (direction === 'down') {
-      // Lanthanides (57-71) down to Actinides (89-103)
-      if (currentZ >= 57 && currentZ <= 71) {
-        return Math.min(103, currentZ + 32);
+      if (direction === 'right') {
+        return currentZ < 118 ? currentZ + 1 : 1;
       }
-      if (currentZ >= 89 && currentZ <= 103) {
+      if (direction === 'left') {
+        return currentZ > 1 ? currentZ - 1 : 118;
+      }
+      if (direction === 'down') {
+        // Lanthanides (57-71) down to Actinides (89-103)
+        if (currentZ >= 57 && currentZ <= 71) {
+          return Math.min(103, currentZ + 32);
+        }
+        if (currentZ >= 89 && currentZ <= 103) {
+          return currentZ;
+        }
+        // In main table: search down in same group
+        for (let p = current.period + 1; p <= 7; p++) {
+          const candidate = elements.find(
+            (e) =>
+              e.group === current.group &&
+              e.period === p &&
+              !(e.atomicNumber >= 57 && e.atomicNumber <= 71) &&
+              !(e.atomicNumber >= 89 && e.atomicNumber <= 103)
+          );
+          if (candidate) return candidate.atomicNumber;
+        }
         return currentZ;
       }
-      // In main table: search down in same group
-      for (let p = current.period + 1; p <= 7; p++) {
-        const candidate = elements.find(
-          (e) =>
-            e.group === current.group &&
-            e.period === p &&
-            !(e.atomicNumber >= 57 && e.atomicNumber <= 71) &&
-            !(e.atomicNumber >= 89 && e.atomicNumber <= 103)
-        );
-        if (candidate) return candidate.atomicNumber;
+      if (direction === 'up') {
+        // Actinides (89-103) up to Lanthanides (57-71)
+        if (currentZ >= 89 && currentZ <= 103) {
+          return Math.max(57, currentZ - 32);
+        }
+        if (currentZ >= 57 && currentZ <= 71) {
+          return 39; // Yttrium
+        }
+        // In main table: search up in same group
+        for (let p = current.period - 1; p >= 1; p--) {
+          const candidate = elements.find(
+            (e) =>
+              e.group === current.group &&
+              e.period === p &&
+              !(e.atomicNumber >= 57 && e.atomicNumber <= 71) &&
+              !(e.atomicNumber >= 89 && e.atomicNumber <= 103)
+          );
+          if (candidate) return candidate.atomicNumber;
+        }
+        return currentZ;
       }
       return currentZ;
-    }
-    if (direction === 'up') {
-      // Actinides (89-103) up to Lanthanides (57-71)
-      if (currentZ >= 89 && currentZ <= 103) {
-        return Math.max(57, currentZ - 32);
-      }
-      if (currentZ >= 57 && currentZ <= 71) {
-        return 39; // Yttrium
-      }
-      // In main table: search up in same group
-      for (let p = current.period - 1; p >= 1; p--) {
-        const candidate = elements.find(
-          (e) =>
-            e.group === current.group &&
-            e.period === p &&
-            !(e.atomicNumber >= 57 && e.atomicNumber <= 71) &&
-            !(e.atomicNumber >= 89 && e.atomicNumber <= 103)
-        );
-        if (candidate) return candidate.atomicNumber;
-      }
-      return currentZ;
-    }
-    return currentZ;
-  };
+    },
+    [elements, elementsByZ]
+  );
 
-  const handleCellKeyDown = (e: React.KeyboardEvent, z: number) => {
-    if (e.key === 'ArrowRight') {
-      e.preventDefault();
-      const nextZ = getNextElementZ(z, 'right');
-      document.getElementById(`element-cell-${nextZ}`)?.focus();
-    } else if (e.key === 'ArrowLeft') {
-      e.preventDefault();
-      const nextZ = getNextElementZ(z, 'left');
-      document.getElementById(`element-cell-${nextZ}`)?.focus();
-    } else if (e.key === 'ArrowDown') {
-      e.preventDefault();
-      const nextZ = getNextElementZ(z, 'down');
-      document.getElementById(`element-cell-${nextZ}`)?.focus();
-    } else if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      const nextZ = getNextElementZ(z, 'up');
-      document.getElementById(`element-cell-${nextZ}`)?.focus();
-    } else if (e.key === 'Home') {
-      e.preventDefault();
-      document.getElementById('element-cell-1')?.focus();
-    } else if (e.key === 'End') {
-      e.preventDefault();
-      document.getElementById('element-cell-118')?.focus();
-    } else if (e.key === 'c' || e.key === 'C') {
-      e.preventDefault();
-      const el = elementsByZ.get(z);
-      if (el) onToggleCompare(el);
-    } else if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault();
-      const el = elementsByZ.get(z);
-      if (el) onSelectElement(el);
-    }
-  };
+  const handleCellKeyDown = React.useCallback(
+    (e: React.KeyboardEvent, z: number) => {
+      if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        const nextZ = getNextElementZ(z, 'right');
+        document.getElementById(`element-cell-${nextZ}`)?.focus();
+      } else if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        const nextZ = getNextElementZ(z, 'left');
+        document.getElementById(`element-cell-${nextZ}`)?.focus();
+      } else if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        const nextZ = getNextElementZ(z, 'down');
+        document.getElementById(`element-cell-${nextZ}`)?.focus();
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        const nextZ = getNextElementZ(z, 'up');
+        document.getElementById(`element-cell-${nextZ}`)?.focus();
+      } else if (e.key === 'Home') {
+        e.preventDefault();
+        document.getElementById('element-cell-1')?.focus();
+      } else if (e.key === 'End') {
+        e.preventDefault();
+        document.getElementById('element-cell-118')?.focus();
+      } else if (e.key === 'c' || e.key === 'C') {
+        e.preventDefault();
+        const el = elementsByZ.get(z);
+        if (el) onToggleCompare(el);
+      } else if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        const el = elementsByZ.get(z);
+        if (el) onSelectElement(el);
+      }
+    },
+    [getNextElementZ, elementsByZ, onSelectElement, onToggleCompare]
+  );
 
   // Helper to render an element card by atomic number
   const renderCell = (z: number) => {
@@ -205,6 +196,9 @@ export const PeriodicGrid: React.FC<PeriodicGridProps> = ({
         displayMode={displayMode}
         activeTrend={activeTrend}
         allElements={elements}
+        minTrendVal={minTrendVal}
+        maxTrendVal={maxTrendVal}
+        heatmapPalette={heatmapPalette}
         temperatureK={temperatureK}
         isFilteredOut={isFilteredOut}
         isSelected={isSelected}
@@ -245,6 +239,7 @@ export const PeriodicGrid: React.FC<PeriodicGridProps> = ({
           {GROUP_LABELS.map((grp) => (
             <div
               key={grp.num}
+              title={`Grupo ${grp.num} (${grp.cas}): ${grp.name}`}
               className="text-center flex flex-col items-center justify-end py-1 text-slate-400 group relative cursor-help"
             >
               <span className="font-mono text-xs font-bold text-slate-200">

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import type { ElementData } from '../../types/element';
+import { classifyBond, type QuizBondLabel } from '../../utils/bonds';
 import {
   GraduationCap,
   CheckCircle2,
@@ -14,9 +15,9 @@ interface QuizModuleProps {
   elements: ElementData[];
 }
 
-type QuizCategory = 'symbols' | 'trends' | 'config' | 'bonds';
+export type QuizCategory = 'symbols' | 'trends' | 'config' | 'bonds';
 
-interface Question {
+export interface Question {
   category: QuizCategory;
   title: string;
   prompt: string;
@@ -25,23 +26,50 @@ interface Question {
   explanation: string;
 }
 
-// Standalone question generator function
-function generateQuestion(cat: QuizCategory, elements: ElementData[]): Question {
+/**
+ * Unbiased Fisher-Yates shuffle returning a new array.
+ */
+function shuffleArray<T>(items: T[]): T[] {
+  const arr = [...items];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+const BOND_QUIZ_PAIRS: [string, string][] = [
+  ['Na', 'Cl'],
+  ['K', 'F'],
+  ['Mg', 'O'],
+  ['Ca', 'Cl'],
+  ['H', 'O'],
+  ['H', 'Cl'],
+  ['C', 'O'],
+  ['N', 'H'],
+  ['C', 'H'],
+  ['N', 'N'],
+  ['O', 'O'],
+  ['Cl', 'Cl'],
+  ['Cu', 'Zn'],
+  ['Fe', 'Ni'],
+  ['Au', 'Ag'],
+];
+
+// Standalone question generator function (exported for unit testing)
+export function generateQuestion(cat: QuizCategory, elements: ElementData[]): Question {
   // 1. Symbols & Names
   if (cat === 'symbols') {
     const target = elements[Math.floor(Math.random() * elements.length)];
     const isNameToSymbol = Math.random() > 0.5;
 
     // Distractors
-    const wrong = elements
-      .filter((e) => e.atomicNumber !== target.atomicNumber)
-      .sort(() => 0.5 - Math.random())
-      .slice(0, 3);
+    const wrong = shuffleArray(
+      elements.filter((e) => e.atomicNumber !== target.atomicNumber)
+    ).slice(0, 3);
 
     if (isNameToSymbol) {
-      const options = [target.symbol, ...wrong.map((w) => w.symbol)].sort(
-        () => 0.5 - Math.random()
-      );
+      const options = shuffleArray([target.symbol, ...wrong.map((w) => w.symbol)]);
       const correctIndex = options.indexOf(target.symbol);
       return {
         category: 'symbols',
@@ -52,15 +80,19 @@ function generateQuestion(cat: QuizCategory, elements: ElementData[]): Question 
         explanation: `El símbolo de ${target.name} es ${target.symbol}. Su masa atómica aproximada es ${target.atomicMass.toFixed(2)} u y pertenece a la categoría de ${target.category}.`,
       };
     } else {
-      const options = [target.name, ...wrong.map((w) => w.name)].sort(() => 0.5 - Math.random());
+      const options = shuffleArray([target.name, ...wrong.map((w) => w.name)]);
       const correctIndex = options.indexOf(target.name);
+      const discoveryText =
+        String(target.yearDiscovered).toLowerCase().includes('antig')
+          ? 'conocido desde la Antigüedad'
+          : `descubierto en ${target.yearDiscovered}`;
       return {
         category: 'symbols',
         title: 'Nomenclatura Elemental',
         prompt: `¿A qué elemento químico corresponde el símbolo "${target.symbol}"?`,
         options,
         correctIndex,
-        explanation: `El símbolo "${target.symbol}" corresponde al ${target.name} (Z = ${target.atomicNumber}), descubierto en ${target.yearDiscovered}.`,
+        explanation: `El símbolo "${target.symbol}" corresponde al ${target.name} (Z = ${target.atomicNumber}), ${discoveryText}.`,
       };
     }
   }
@@ -68,19 +100,27 @@ function generateQuestion(cat: QuizCategory, elements: ElementData[]): Question 
   // 2. Periodic Trends
   if (cat === 'trends') {
     const valid = elements.filter(
-      (e) => e.electronegativity !== null && e.atomicRadius !== null && e.ionizationEnergy !== null
+      (e) =>
+        e.electronegativity !== null &&
+        e.atomicRadius !== null &&
+        e.ionizationEnergy !== null
     );
     const e1 = valid[Math.floor(Math.random() * valid.length)];
-    const e2 = valid.filter((e) => e.atomicNumber !== e1.atomicNumber)[
-      Math.floor(Math.random() * (valid.length - 1))
-    ];
+    const candidates = valid.filter(
+      (e) =>
+        e.atomicNumber !== e1.atomicNumber &&
+        e.electronegativity !== e1.electronegativity &&
+        e.atomicRadius !== e1.atomicRadius &&
+        e.ionizationEnergy !== e1.ionizationEnergy
+    );
+    const e2 = candidates[Math.floor(Math.random() * candidates.length)] || valid[0];
 
     const trendType = Math.random();
     if (trendType < 0.33) {
       // Electronegativity
       const higher = e1.electronegativity! > e2.electronegativity! ? e1 : e2;
       const lower = higher === e1 ? e2 : e1;
-      const options = [higher.name, lower.name].sort(() => 0.5 - Math.random());
+      const options = shuffleArray([higher.name, lower.name]);
       return {
         category: 'trends',
         title: 'Tendencia: Electronegatividad',
@@ -93,7 +133,7 @@ function generateQuestion(cat: QuizCategory, elements: ElementData[]): Question 
       // Atomic Radius
       const higher = e1.atomicRadius! > e2.atomicRadius! ? e1 : e2;
       const lower = higher === e1 ? e2 : e1;
-      const options = [higher.name, lower.name].sort(() => 0.5 - Math.random());
+      const options = shuffleArray([higher.name, lower.name]);
       return {
         category: 'trends',
         title: 'Tendencia: Radio Atómico',
@@ -106,7 +146,7 @@ function generateQuestion(cat: QuizCategory, elements: ElementData[]): Question 
       // Ionization Energy
       const higher = e1.ionizationEnergy! > e2.ionizationEnergy! ? e1 : e2;
       const lower = higher === e1 ? e2 : e1;
-      const options = [higher.name, lower.name].sort(() => 0.5 - Math.random());
+      const options = shuffleArray([higher.name, lower.name]);
       return {
         category: 'trends',
         title: 'Tendencia: 1ª Energía de Ionización',
@@ -118,42 +158,43 @@ function generateQuestion(cat: QuizCategory, elements: ElementData[]): Question 
     }
   }
 
-  // 3. Electron Configuration
+  // 3. Electron Configuration (main-group s & p block elements up to Z=36 for unambiguous valence shell count)
   if (cat === 'config') {
-    const interestingElements = elements.filter((e) => e.atomicNumber <= 36);
-    const target = interestingElements[Math.floor(Math.random() * interestingElements.length)];
+    const mainGroupElements = elements.filter(
+      (e) => e.atomicNumber <= 36 && (e.block === 's' || e.block === 'p')
+    );
+    const target =
+      mainGroupElements[Math.floor(Math.random() * mainGroupElements.length)] || elements[0];
     const valenceElectrons = target.electronsPerShell[target.electronsPerShell.length - 1];
 
-    const options = Array.from(
-      new Set([valenceElectrons, (valenceElectrons % 8) + 1, Math.max(1, valenceElectrons - 1), Math.min(8, valenceElectrons + 2)])
-    )
-      .slice(0, 4)
-      .map((n) => `${n} electrones`);
+    const distractorPool = [1, 2, 3, 4, 5, 6, 7, 8].filter((n) => n !== valenceElectrons);
+    const chosenNumbers = [
+      valenceElectrons,
+      ...shuffleArray(distractorPool).slice(0, 3),
+    ];
 
-    const correctLabel = `${valenceElectrons} electrones`;
-    const shuffled = options.sort(() => 0.5 - Math.random());
+    const correctLabel = `${valenceElectrons} ${valenceElectrons === 1 ? 'electrón' : 'electrones'}`;
+    const shuffled = shuffleArray(
+      chosenNumbers.map((n) => `${n} ${n === 1 ? 'electrón' : 'electrones'}`)
+    );
 
     return {
       category: 'config',
       title: 'Electrones de Valencia',
-      prompt: `¿Cuántos electrones de valencia tiene en su capa más externa un átomo neutro de ${target.name} (${target.symbol}, Z = ${target.atomicNumber})?`,
+      prompt: `¿Cuántos electrones tiene en su capa de valencia más externa un átomo neutro de ${target.name} (${target.symbol}, Z = ${target.atomicNumber})?`,
       options: shuffled,
       correctIndex: shuffled.indexOf(correctLabel),
-      explanation: `El ${target.name} presenta la configuración ${target.electronConfiguration}, con capas [${target.electronsPerShell.join(', ')}]. Su capa más externa contiene exactamente ${valenceElectrons} electrón(es) de valencia.`,
+      explanation: `El ${target.name} presenta la configuración ${target.electronConfiguration}, con distribución por capas [${target.electronsPerShell.join(', ')}]. Su nivel principal más externo contiene exactamente ${valenceElectrons} ${valenceElectrons === 1 ? 'electrón' : 'electrones'}.`,
     };
   }
 
-  // 4. Chemical Bonds
-  const pairs = [
-    { a: 'Na', b: 'Cl', type: 'Enlace Iónico', why: 'ΔEN = 2.23 > 1.7 entre metal alcalino y halógeno.' },
-    { a: 'H', b: 'O', type: 'Enlace Covalente Polar', why: 'ΔEN = 1.24 (entre 0.4 y 1.7), creando dipolo permanente.' },
-    { a: 'C', b: 'H', type: 'Enlace Covalente No Polar', why: 'ΔEN = 0.35 < 0.4, compartición casi equitativa de carga (débilmente polar / apolar).' },
-    { a: 'K', b: 'F', type: 'Enlace Iónico', why: 'ΔEN = 3.16, transferencia total de electrones con formación de red cristalina.' },
-    { a: 'N', b: 'N', type: 'Enlace Covalente No Polar', why: 'ΔEN = 0.00 entre átomos idénticos, compartición simétrica.' },
-    { a: 'Cu', b: 'Zn', type: 'Enlace Metálico', why: 'Unión entre dos metales electropositivos con mar de electrones.' },
-  ];
-  const chosen = pairs[Math.floor(Math.random() * pairs.length)];
-  const bondOptions = [
+  // 4. Chemical Bonds (unified with classifyBond)
+  const [symA, symB] = BOND_QUIZ_PAIRS[Math.floor(Math.random() * BOND_QUIZ_PAIRS.length)];
+  const elA = elements.find((e) => e.symbol === symA) || elements[0];
+  const elB = elements.find((e) => e.symbol === symB) || elements[1];
+  const bondInfo = classifyBond(elA, elB);
+
+  const bondOptions: QuizBondLabel[] = [
     'Enlace Iónico',
     'Enlace Covalente Polar',
     'Enlace Covalente No Polar',
@@ -163,10 +204,10 @@ function generateQuestion(cat: QuizCategory, elements: ElementData[]): Question 
   return {
     category: 'bonds',
     title: 'Predicción de Enlace Químico',
-    prompt: `¿Qué tipo de enlace predomina entre átomos de ${chosen.a} y ${chosen.b}?`,
+    prompt: `¿Qué tipo de enlace químico predomina al unirse átomos de ${elA.name} (${elA.symbol}) y ${elB.name} (${elB.symbol})?`,
     options: bondOptions,
-    correctIndex: bondOptions.indexOf(chosen.type),
-    explanation: `${chosen.why}`,
+    correctIndex: bondOptions.indexOf(bondInfo.quizLabel),
+    explanation: bondInfo.description,
   };
 }
 
@@ -266,7 +307,7 @@ export const QuizModule: React.FC<QuizModuleProps> = ({ elements }) => {
         <div>
           <h2 className="text-xl font-bold text-white flex items-center gap-2">
             <GraduationCap className="w-6 h-6 text-indigo-400" />
-            Módulo Didáctico de Evaluación & Quizzes
+            Módulo Didáctico de Evaluación &amp; Quizzes
           </h2>
           <p className="text-xs text-slate-400 mt-1">
             Pon a prueba tu comprensión de nomenclatura, tendencias periódicas, configuraciones electrónicas y enlaces químicos con retroalimentación inmediata.
@@ -274,7 +315,10 @@ export const QuizModule: React.FC<QuizModuleProps> = ({ elements }) => {
         </div>
 
         {/* Score & Streak Stats */}
-        <div className="flex flex-wrap items-center gap-3 text-xs font-mono bg-slate-950 p-2.5 rounded-xl border border-slate-800">
+        <div
+          aria-live="polite"
+          className="flex flex-wrap items-center gap-3 text-xs font-mono bg-slate-950 p-2.5 rounded-xl border border-slate-800"
+        >
           <div className="flex items-center gap-1.5 text-emerald-400 font-bold" title="Aciertos acumulados">
             <Trophy className="w-4 h-4" />
             <span>
@@ -299,6 +343,7 @@ export const QuizModule: React.FC<QuizModuleProps> = ({ elements }) => {
               onClick={handleResetStats}
               className="p-1 rounded text-slate-500 hover:text-slate-300 hover:bg-slate-800 transition-colors"
               title="Reiniciar estadísticas del quiz"
+              aria-label="Reiniciar estadísticas del quiz"
             >
               <RotateCcw className="w-3.5 h-3.5" />
             </button>
@@ -307,7 +352,11 @@ export const QuizModule: React.FC<QuizModuleProps> = ({ elements }) => {
       </div>
 
       {/* Category selector */}
-      <div className="flex flex-wrap gap-2 p-1.5 bg-slate-950 rounded-xl border border-slate-800">
+      <div
+        role="tablist"
+        aria-label="Categorías del quiz"
+        className="flex flex-wrap gap-2 p-1.5 bg-slate-950 rounded-xl border border-slate-800"
+      >
         {[
           { key: 'symbols', label: 'Símbolos & Nombres' },
           { key: 'trends', label: 'Tendencias Periódicas' },
@@ -316,6 +365,8 @@ export const QuizModule: React.FC<QuizModuleProps> = ({ elements }) => {
         ].map((tab) => (
           <button
             key={tab.key}
+            role="tab"
+            aria-selected={category === tab.key}
             onClick={() => handleCategoryChange(tab.key as QuizCategory)}
             className={`px-3.5 py-2 rounded-lg text-xs font-semibold transition-all ${
               category === tab.key
@@ -362,6 +413,7 @@ export const QuizModule: React.FC<QuizModuleProps> = ({ elements }) => {
                   key={idx}
                   onClick={() => handleSelectOption(idx)}
                   disabled={selectedIndex !== null}
+                  aria-pressed={selectedIndex === idx}
                   className={`p-4 rounded-xl border text-left text-sm font-medium transition-all flex items-center justify-between shadow-inner ${optionStyle}`}
                 >
                   <span>{opt}</span>
@@ -381,6 +433,8 @@ export const QuizModule: React.FC<QuizModuleProps> = ({ elements }) => {
           {/* Explanation Box on Answer */}
           {selectedIndex !== null && (
             <div
+              role="status"
+              aria-live="polite"
               className={`p-4 rounded-xl border text-xs space-y-2 animate-in fade-in duration-200 ${
                 selectedIndex === currentQuestion.correctIndex
                   ? 'bg-emerald-950/30 border-emerald-500/40 text-emerald-200'

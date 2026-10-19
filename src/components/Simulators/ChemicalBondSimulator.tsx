@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { ElementData } from '../../types/element';
+import { classifyBond } from '../../utils/bonds';
 import { Flame, Sparkles, Info } from 'lucide-react';
 
 interface ChemicalBondSimulatorProps {
@@ -15,7 +16,9 @@ export const ChemicalBondSimulator: React.FC<ChemicalBondSimulatorProps> = ({
   const validElements = elements.filter((e) => e.electronegativity !== null);
 
   const [elementA, setElementA] = useState<ElementData>(
-    initialElement || elements.find((e) => e.symbol === 'Na') || elements[0]
+    initialElement && initialElement.electronegativity !== null
+      ? initialElement
+      : elements.find((e) => e.symbol === 'Na') || elements[0]
   );
   const [elementB, setElementB] = useState<ElementData>(
     elements.find((e) => e.symbol === 'Cl') || elements[16]
@@ -23,47 +26,15 @@ export const ChemicalBondSimulator: React.FC<ChemicalBondSimulatorProps> = ({
 
   const enA = elementA.electronegativity ?? 0;
   const enB = elementB.electronegativity ?? 0;
-  const deltaEN = Math.abs(enA - enB);
-
-  // Pauling's formula for % ionic character:
-  // % Ionic = (1 - exp(-0.25 * deltaEN^2)) * 100%
-  const ionicPercentage = Math.round((1 - Math.exp(-0.25 * Math.pow(deltaEN, 2))) * 100);
-  const covalentPercentage = 100 - ionicPercentage;
-
-  // Determine bond type
-  const isMetalA = elementA.category.includes('metal') && !elementA.category.includes('metalloid');
-  const isMetalB = elementB.category.includes('metal') && !elementB.category.includes('metalloid');
-
-  let bondClass = '';
-  let bondTitle = '';
-  let bondBadge = '';
-  let bondDescription = '';
-
-  if (isMetalA && isMetalB) {
-    bondClass = 'metallic';
-    bondTitle = 'Enlace Metálico';
-    bondBadge = 'bg-amber-500/20 text-amber-300 border-amber-500/50';
-    bondDescription = `Al interactuar dos metales electropositivos (${elementA.name} y ${elementB.name}), los electrones de valencia se deslocalizan en un 'mar de electrones' colectivo que baña a los cationes metálicos empaquetados. Esto produce aleaciones o fases intermetálicas con conductividad térmica y eléctrica excepcionales.`;
-  } else if (deltaEN > 1.7) {
-    bondClass = 'ionic';
-    bondTitle = 'Enlace Iónico Predominante';
-    bondBadge = 'bg-rose-500/20 text-rose-300 border-rose-500/50';
-    const cation = enA < enB ? elementA : elementB;
-    const anion = cation === elementA ? elementB : elementA;
-    bondDescription = `La diferencia de electronegatividad (ΔEN = ${deltaEN.toFixed(2)}) supera el umbral estándar de 1.7. ${cation.name} cede sus electrones de valencia a ${anion.name}, formándose un catión (${cation.symbol}⁺) y un anión (${anion.symbol}⁻) unidos por intensas atracciones electrostáticas omnidireccionales (red cristalina iónica).`;
-  } else if (deltaEN >= 0.4) {
-    bondClass = 'polar-covalent';
-    bondTitle = 'Enlace Covalente Polar';
-    bondBadge = 'bg-sky-500/20 text-sky-300 border-sky-500/50';
-    const negative = enA > enB ? elementA : elementB;
-    const positive = negative === elementA ? elementB : elementA;
-    bondDescription = `La diferencia moderada de electronegatividad (ΔEN = ${deltaEN.toFixed(2)}) provoca que el par de electrones del enlace sea atraído con mayor densidad hacia el átomo de ${negative.name} (adquiriendo carga parcial negativa δ⁻), dejando a ${positive.name} con carga parcial positiva (δ⁺) y creando un momento dipolar permanente.`;
-  } else {
-    bondClass = 'nonpolar-covalent';
-    bondTitle = 'Enlace Covalente Apolar (No Polar)';
-    bondBadge = 'bg-emerald-500/20 text-emerald-300 border-emerald-500/50';
-    bondDescription = `La diferencia de electronegatividad es casi nula (ΔEN = ${deltaEN.toFixed(2)} < 0.4). Los electrones se comparten con una distribución de densidad espacialmente simétrica y uniforme entre ambos núcleos, sin momentos dipolares permanentes significativos.`;
-  }
+  const {
+    bondClass,
+    title: bondTitle,
+    badgeClass: bondBadge,
+    deltaEN,
+    ionicPercentage,
+    covalentPercentage,
+    description: bondDescription,
+  } = classifyBond(elementA, elementB);
 
   // Quick preset pairs
   const presetPairs = [
@@ -115,14 +86,18 @@ export const ChemicalBondSimulator: React.FC<ChemicalBondSimulatorProps> = ({
       </div>
 
       {/* Selectors and Bond Gauge Card */}
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-stretch">
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-stretch" aria-live="polite">
         {/* Element A Selector */}
         <div className="md:col-span-4 bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl flex flex-col justify-between space-y-4">
           <div>
-            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-2">
+            <label
+              htmlFor="bond-element-a"
+              className="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-2"
+            >
               Elemento A
-            </span>
+            </label>
             <select
+              id="bond-element-a"
               value={elementA.atomicNumber}
               onChange={(e) => {
                 const z = parseInt(e.target.value, 10);
@@ -199,10 +174,14 @@ export const ChemicalBondSimulator: React.FC<ChemicalBondSimulatorProps> = ({
         {/* Element B Selector */}
         <div className="md:col-span-4 bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl flex flex-col justify-between space-y-4">
           <div>
-            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-2">
+            <label
+              htmlFor="bond-element-b"
+              className="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-2"
+            >
               Elemento B
-            </span>
+            </label>
             <select
+              id="bond-element-b"
               value={elementB.atomicNumber}
               onChange={(e) => {
                 const z = parseInt(e.target.value, 10);
@@ -257,7 +236,7 @@ export const ChemicalBondSimulator: React.FC<ChemicalBondSimulatorProps> = ({
               <>
                 {/* Arrow of complete electron transfer */}
                 <path
-                  d={enA < enB ? "M 150 50 Q 230 10 310 50" : "M 310 50 Q 230 10 150 50"}
+                  d={enA < enB ? 'M 150 50 Q 230 10 310 50' : 'M 310 50 Q 230 10 150 50'}
                   fill="none"
                   stroke="#fb7185"
                   strokeWidth="2.5"
@@ -281,7 +260,7 @@ export const ChemicalBondSimulator: React.FC<ChemicalBondSimulatorProps> = ({
                   strokeWidth="2.5"
                 />
                 <polygon
-                  points={enA < enB ? "290,30 300,35 290,40" : "170,30 160,35 170,40"}
+                  points={enA < enB ? '290,30 300,35 290,40' : '170,30 160,35 170,40'}
                   fill="#38bdf8"
                 />
                 <line
@@ -307,6 +286,15 @@ export const ChemicalBondSimulator: React.FC<ChemicalBondSimulatorProps> = ({
               </>
             )}
 
+            {bondClass === 'metallic' && (
+              <>
+                <ellipse cx="230" cy="75" rx="135" ry="42" fill="rgba(245, 158, 11, 0.12)" stroke="#f59e0b" strokeDasharray="5 3" strokeWidth="1.5" />
+                <text x="230" y="22" fill="#fbbf24" fontSize="11" textAnchor="middle" fontWeight="bold">
+                  Mar de electrones deslocalizados
+                </text>
+              </>
+            )}
+
             {/* Atom A */}
             <circle cx="120" cy="75" r="32" fill="#0284c7" fillOpacity="0.3" stroke="#38bdf8" strokeWidth="2.5" />
             <text x="120" y="79" fill="#ffffff" fontSize="16" fontWeight="bold" textAnchor="middle" fontFamily="monospace">
@@ -317,6 +305,8 @@ export const ChemicalBondSimulator: React.FC<ChemicalBondSimulatorProps> = ({
                 ? enA < enB ? 'Catión (+)' : 'Anión (-)'
                 : bondClass === 'polar-covalent'
                 ? enA < enB ? 'Carga δ⁺' : 'Carga δ⁻'
+                : bondClass === 'metallic'
+                ? 'Catión en red'
                 : 'Carga neutra'}
             </text>
 
@@ -330,6 +320,8 @@ export const ChemicalBondSimulator: React.FC<ChemicalBondSimulatorProps> = ({
                 ? enB < enA ? 'Catión (+)' : 'Anión (-)'
                 : bondClass === 'polar-covalent'
                 ? enB < enA ? 'Carga δ⁺' : 'Carga δ⁻'
+                : bondClass === 'metallic'
+                ? 'Catión en red'
                 : 'Carga neutra'}
             </text>
           </svg>

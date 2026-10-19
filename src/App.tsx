@@ -1,6 +1,7 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback, lazy, Suspense } from 'react';
 import type { ElementData, ElementCategory, ElementBlock, TrendProperty } from './types/element';
 import type { TableDisplayMode } from './components/PeriodicTable/ElementCard';
+import type { HeatmapPalette } from './utils/trends';
 import { ELEMENTS_DATA } from './data/elementsData';
 import { Navbar, type AppTab } from './components/Navbar/Navbar';
 import { FilterBar } from './components/PeriodicTable/FilterBar';
@@ -8,13 +9,35 @@ import { PeriodicGrid } from './components/PeriodicTable/PeriodicGrid';
 import { ElementListView } from './components/PeriodicTable/ElementListView';
 import { HeatmapLegend } from './components/PeriodicTable/HeatmapLegend';
 import { ElementModal } from './components/ElementModal/ElementModal';
-import { ElementComparator } from './components/Comparator/ElementComparator';
-import { AtomSimulator } from './components/Simulators/AtomSimulator';
-import { ElectronConfigSimulator } from './components/Simulators/ElectronConfigSimulator';
-import { ChemicalBondSimulator } from './components/Simulators/ChemicalBondSimulator';
-import { QuizModule } from './components/Quiz/QuizModule';
 import { InfoModal } from './components/InfoModal/InfoModal';
+import { filterElements, normalizeSearchText } from './utils/filters';
 import { APP_VERSION, APP_BUILD_DATE } from './version';
+
+const ElementComparator = lazy(() =>
+  import('./components/Comparator/ElementComparator').then((m) => ({
+    default: m.ElementComparator,
+  }))
+);
+const AtomSimulator = lazy(() =>
+  import('./components/Simulators/AtomSimulator').then((m) => ({
+    default: m.AtomSimulator,
+  }))
+);
+const ElectronConfigSimulator = lazy(() =>
+  import('./components/Simulators/ElectronConfigSimulator').then((m) => ({
+    default: m.ElectronConfigSimulator,
+  }))
+);
+const ChemicalBondSimulator = lazy(() =>
+  import('./components/Simulators/ChemicalBondSimulator').then((m) => ({
+    default: m.ChemicalBondSimulator,
+  }))
+);
+const QuizModule = lazy(() =>
+  import('./components/Quiz/QuizModule').then((m) => ({
+    default: m.QuizModule,
+  }))
+);
 
 // Type for PWA BeforeInstallPromptEvent
 interface BeforeInstallPromptEvent extends Event {
@@ -25,14 +48,6 @@ interface BeforeInstallPromptEvent extends Event {
   }>;
   prompt(): Promise<void>;
 }
-
-
-const normalizeSearch = (str: string) =>
-  str
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-    .trim();
 
 export function App() {
   const [activeTab, setActiveTab] = useState<AppTab>(() => {
@@ -52,13 +67,13 @@ export function App() {
       const params = new URLSearchParams(window.location.search);
       const elParam = params.get('el');
       if (elParam) {
-        const clean = normalizeSearch(elParam);
+        const clean = normalizeSearchText(elParam);
         const matched = ELEMENTS_DATA.find(
           (e) =>
             e.symbol.toLowerCase() === clean ||
             e.atomicNumber.toString() === clean ||
-            normalizeSearch(e.name) === clean ||
-            normalizeSearch(e.nameEn) === clean
+            normalizeSearchText(e.name) === clean ||
+            normalizeSearchText(e.nameEn) === clean
         );
         if (matched) return matched;
       }
@@ -83,6 +98,24 @@ export function App() {
     }
   });
 
+  const [heatmapPalette, setHeatmapPalette] = useState<HeatmapPalette>(() => {
+    try {
+      const saved = localStorage.getItem('xtablelab_palette');
+      if (saved === 'colorblind' || saved === 'standard') return saved;
+    } catch {
+      //
+    }
+    return 'standard';
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('xtablelab_palette', heatmapPalette);
+    } catch {
+      //
+    }
+  }, [heatmapPalette]);
+
   // Apply theme to document element and persist
   useEffect(() => {
     try {
@@ -100,19 +133,34 @@ export function App() {
     }
   }, [theme]);
 
-  const toggleTheme = () => {
+  const toggleTheme = useCallback(() => {
     setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
-  };
+  }, []);
 
-  // Global Keyboard Shortcuts
+  // Global Keyboard Shortcuts (safe against modifiers and open modals)
   useEffect(() => {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      // Ignore shortcuts with Ctrl, Cmd, or Alt modifiers
+      if (e.ctrlKey || e.metaKey || e.altKey) {
+        return;
+      }
+
       const target = e.target as HTMLElement | null;
       if (
         target?.tagName === 'INPUT' ||
         target?.tagName === 'TEXTAREA' ||
-        target?.tagName === 'SELECT'
+        target?.tagName === 'SELECT' ||
+        target?.isContentEditable
       ) {
+        return;
+      }
+
+      // Do not intercept global navigation shortcuts while a modal dialog is open
+      if (selectedElement !== null || isInfoModalOpen) {
+        if (e.key === '?' || e.key === 'F1') {
+          e.preventDefault();
+          setIsInfoModalOpen((prev) => !prev);
+        }
         return;
       }
 
@@ -146,7 +194,7 @@ export function App() {
 
     window.addEventListener('keydown', handleGlobalKeyDown);
     return () => window.removeEventListener('keydown', handleGlobalKeyDown);
-  }, []);
+  }, [selectedElement, isInfoModalOpen, toggleTheme]);
 
   // PWA beforeinstallprompt handler
   useEffect(() => {
@@ -196,25 +244,17 @@ export function App() {
   const [temperatureK, setTemperatureK] = useState(298.15); // Room temperature 25 °C
   const [onlyRadioactive, setOnlyRadioactive] = useState(false);
 
-  // Filter count computation
+  // Filter count computation via unified utility
   const filteredCount = useMemo(() => {
-    const q = normalizeSearch(searchQuery);
-    return ELEMENTS_DATA.filter((el) => {
-      if (selectedCategory !== 'all' && el.category !== selectedCategory) return false;
-      if (selectedBlock !== 'all' && el.block !== selectedBlock) return false;
-      if (onlyRadioactive && !el.radioactive) return false;
-      if (q) {
-        const matchName = normalizeSearch(el.name).includes(q);
-        const matchNameEn = normalizeSearch(el.nameEn).includes(q);
-        const matchSymbol = el.symbol.toLowerCase() === q || el.symbol.toLowerCase().startsWith(q);
-        const matchNumber = el.atomicNumber.toString() === q;
-        if (!matchName && !matchNameEn && !matchSymbol && !matchNumber) return false;
-      }
-      return true;
+    return filterElements(ELEMENTS_DATA, {
+      selectedCategory,
+      selectedBlock,
+      onlyRadioactive,
+      searchQuery,
     }).length;
   }, [selectedCategory, selectedBlock, onlyRadioactive, searchQuery]);
 
-  // Min and Max for current trend in heatmap mode
+  // Min and Max for current trend in heatmap mode (computed once per trend change)
   const { minTrendVal, maxTrendVal } = useMemo(() => {
     const vals = ELEMENTS_DATA.map((e) => e[activeTrend]).filter(
       (v): v is number => v !== null && v !== undefined && !isNaN(v)
@@ -227,17 +267,20 @@ export function App() {
   }, [activeTrend]);
 
   // Navigate next/prev element in modal
-  const handleNavigateElement = (step: number) => {
-    if (!selectedElement) return;
-    let nextZ = selectedElement.atomicNumber + step;
-    if (nextZ < 1) nextZ = 118;
-    if (nextZ > 118) nextZ = 1;
-    const found = ELEMENTS_DATA.find((e) => e.atomicNumber === nextZ);
-    if (found) setSelectedElement(found);
-  };
+  const handleNavigateElement = useCallback(
+    (step: number) => {
+      if (!selectedElement) return;
+      let nextZ = selectedElement.atomicNumber + step;
+      if (nextZ < 1) nextZ = 118;
+      if (nextZ > 118) nextZ = 1;
+      const found = ELEMENTS_DATA.find((e) => e.atomicNumber === nextZ);
+      if (found) setSelectedElement(found);
+    },
+    [selectedElement]
+  );
 
   // Toggle comparison item (max 3)
-  const handleToggleCompare = (el: ElementData) => {
+  const handleToggleCompare = useCallback((el: ElementData) => {
     setComparisonList((prev) => {
       const exists = prev.some((c) => c.atomicNumber === el.atomicNumber);
       if (exists) {
@@ -248,29 +291,39 @@ export function App() {
       }
       return [...prev, el];
     });
-  };
+  }, []);
 
   // Clear filters
-  const handleResetFilters = () => {
+  const handleResetFilters = useCallback(() => {
     setSearchQuery('');
     setSelectedCategory('all');
     setSelectedBlock('all');
     setOnlyRadioactive(false);
-  };
+  }, []);
 
   // Handle jump from modal to simulator
-  const handleGoToSimulator = (
-    type: 'atom' | 'electron' | 'bond',
-    el: ElementData
-  ) => {
-    setSimulatorTargetElement(el);
-    setSelectedElement(null);
-    if (type === 'atom') setActiveTab('atom');
-    else if (type === 'electron') setActiveTab('config');
-    else if (type === 'bond') {
-      setActiveTab('bonds');
-    }
-  };
+  const handleGoToSimulator = useCallback(
+    (type: 'atom' | 'electron' | 'bond', el: ElementData) => {
+      setSimulatorTargetElement(el);
+      setSelectedElement(null);
+      if (type === 'atom') setActiveTab('atom');
+      else if (type === 'electron') setActiveTab('config');
+      else if (type === 'bond') {
+        setActiveTab('bonds');
+      }
+    },
+    []
+  );
+
+  const lazyFallback = (
+    <div
+      role="status"
+      aria-live="polite"
+      className="bg-slate-900/60 border border-slate-800 rounded-2xl p-12 text-center text-slate-400 text-sm animate-pulse"
+    >
+      Cargando módulo interactivo...
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col selection:bg-sky-500 selection:text-white">
@@ -311,6 +364,8 @@ export function App() {
               onOnlyRadioactiveChange={setOnlyRadioactive}
               onResetFilters={handleResetFilters}
               totalFilteredCount={filteredCount}
+              heatmapPalette={heatmapPalette}
+              onHeatmapPaletteChange={setHeatmapPalette}
             />
 
             {/* Heatmap Legend if Heatmap mode active */}
@@ -319,6 +374,7 @@ export function App() {
                 trend={activeTrend}
                 minVal={minTrendVal}
                 maxVal={maxTrendVal}
+                palette={heatmapPalette}
               />
             )}
 
@@ -338,6 +394,9 @@ export function App() {
                 onSelectElement={setSelectedElement}
                 onToggleCompare={handleToggleCompare}
                 onSwitchToCards={() => setLayoutView('cards')}
+                minTrendVal={minTrendVal}
+                maxTrendVal={maxTrendVal}
+                heatmapPalette={heatmapPalette}
               />
             ) : (
               <ElementListView
@@ -353,54 +412,60 @@ export function App() {
                 comparisonList={comparisonList}
                 onSelectElement={setSelectedElement}
                 onToggleCompare={handleToggleCompare}
+                minTrendVal={minTrendVal}
+                maxTrendVal={maxTrendVal}
+                heatmapPalette={heatmapPalette}
               />
             )}
           </div>
         )}
 
-        {/* Tab 2: Element Comparator */}
-        {activeTab === 'compare' && (
-          <ElementComparator
-            elements={ELEMENTS_DATA}
-            comparisonList={comparisonList}
-            onRemoveFromCompare={(z) =>
-              setComparisonList((prev) => prev.filter((c) => c.atomicNumber !== z))
-            }
-            onAddElement={(el) => {
-              if (comparisonList.length < 3) {
-                setComparisonList((prev) => [...prev, el]);
+        {/* Secondary Lazy-Loaded Modules */}
+        <Suspense fallback={lazyFallback}>
+          {/* Tab 2: Element Comparator */}
+          {activeTab === 'compare' && (
+            <ElementComparator
+              elements={ELEMENTS_DATA}
+              comparisonList={comparisonList}
+              onRemoveFromCompare={(z) =>
+                setComparisonList((prev) => prev.filter((c) => c.atomicNumber !== z))
               }
-            }}
-            onClearAll={() => setComparisonList([])}
-          />
-        )}
+              onAddElement={(el) => {
+                if (comparisonList.length < 3) {
+                  setComparisonList((prev) => [...prev, el]);
+                }
+              }}
+              onClearAll={() => setComparisonList([])}
+            />
+          )}
 
-        {/* Tab 3: Atom Simulator */}
-        {activeTab === 'atom' && (
-          <AtomSimulator
-            elements={ELEMENTS_DATA}
-            initialElement={simulatorTargetElement}
-          />
-        )}
+          {/* Tab 3: Atom Simulator */}
+          {activeTab === 'atom' && (
+            <AtomSimulator
+              elements={ELEMENTS_DATA}
+              initialElement={simulatorTargetElement}
+            />
+          )}
 
-        {/* Tab 4: Quantum Electron Configuration (Aufbau) */}
-        {activeTab === 'config' && (
-          <ElectronConfigSimulator
-            elements={ELEMENTS_DATA}
-            initialElement={simulatorTargetElement}
-          />
-        )}
+          {/* Tab 4: Quantum Electron Configuration (Aufbau) */}
+          {activeTab === 'config' && (
+            <ElectronConfigSimulator
+              elements={ELEMENTS_DATA}
+              initialElement={simulatorTargetElement}
+            />
+          )}
 
-        {/* Tab 5: Chemical Bond Simulator */}
-        {activeTab === 'bonds' && (
-          <ChemicalBondSimulator
-            elements={ELEMENTS_DATA}
-            initialElement={simulatorTargetElement}
-          />
-        )}
+          {/* Tab 5: Chemical Bond Simulator */}
+          {activeTab === 'bonds' && (
+            <ChemicalBondSimulator
+              elements={ELEMENTS_DATA}
+              initialElement={simulatorTargetElement}
+            />
+          )}
 
-        {/* Tab 6: Interactive Quizzes */}
-        {activeTab === 'quiz' && <QuizModule elements={ELEMENTS_DATA} />}
+          {/* Tab 6: Interactive Quizzes */}
+          {activeTab === 'quiz' && <QuizModule elements={ELEMENTS_DATA} />}
+        </Suspense>
       </main>
 
       {/* Element Detail Modal */}

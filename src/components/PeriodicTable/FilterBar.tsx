@@ -2,8 +2,8 @@ import React from 'react';
 import type { ElementCategory, ElementBlock, TrendProperty } from '../../types/element';
 import type { TableDisplayMode } from './ElementCard';
 import { CATEGORY_COLORS } from '../../data/elementsData';
-import { TREND_INFO } from '../../utils/trends';
-import { Search, RotateCcw, Flame, Layers, Box, Thermometer, Sparkles, Radiation, LayoutGrid, Rows } from 'lucide-react';
+import { TREND_INFO, type HeatmapPalette } from '../../utils/trends';
+import { Search, RotateCcw, Flame, Layers, Box, Thermometer, Sparkles, Radiation, LayoutGrid, Rows, Eye } from 'lucide-react';
 
 interface FilterBarProps {
   searchQuery: string;
@@ -14,6 +14,8 @@ interface FilterBarProps {
   onLayoutViewChange: (view: 'grid' | 'cards') => void;
   activeTrend: TrendProperty;
   onActiveTrendChange: (trend: TrendProperty) => void;
+  heatmapPalette?: HeatmapPalette;
+  onHeatmapPaletteChange?: (palette: HeatmapPalette) => void;
   selectedCategory: ElementCategory | 'all';
   onCategoryChange: (cat: ElementCategory | 'all') => void;
   selectedBlock: ElementBlock | 'all';
@@ -33,6 +35,8 @@ export const FilterBar: React.FC<FilterBarProps> = ({
   onDisplayModeChange,
   activeTrend,
   onActiveTrendChange,
+  heatmapPalette = 'standard',
+  onHeatmapPaletteChange,
   selectedCategory,
   onCategoryChange,
   selectedBlock,
@@ -167,26 +171,47 @@ export const FilterBar: React.FC<FilterBarProps> = ({
 
       {/* Secondary Bar depending on mode */}
       {displayMode === 'heatmap' && (
-        <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-800/70">
-          <span className="text-xs font-medium text-slate-400 flex items-center gap-1.5">
-            <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-            Propiedad periódica a graficar:
-          </span>
-          <div className="flex flex-wrap gap-1.5">
-            {(Object.keys(TREND_INFO) as TrendProperty[]).map((prop) => (
-              <button
-                key={prop}
-                onClick={() => onActiveTrendChange(prop)}
-                className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all ${
-                  activeTrend === prop
-                    ? 'bg-amber-500 text-slate-950 font-bold shadow'
-                    : 'bg-slate-800/80 text-slate-300 hover:bg-slate-700 hover:text-white'
-                }`}
-              >
-                {TREND_INFO[prop].label}
-              </button>
-            ))}
+        <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-800/70">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs font-medium text-slate-400 flex items-center gap-1.5">
+              <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+              Propiedad periódica a graficar:
+            </span>
+            <div className="flex flex-wrap gap-1.5">
+              {(Object.keys(TREND_INFO) as TrendProperty[]).map((prop) => (
+                <button
+                  key={prop}
+                  onClick={() => onActiveTrendChange(prop)}
+                  className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all ${
+                    activeTrend === prop
+                      ? 'bg-amber-500 text-slate-950 font-bold shadow'
+                      : 'bg-slate-800/80 text-slate-300 hover:bg-slate-700 hover:text-white'
+                  }`}
+                >
+                  {TREND_INFO[prop].label}
+                </button>
+              ))}
+            </div>
           </div>
+
+          {onHeatmapPaletteChange && (
+            <button
+              type="button"
+              onClick={() =>
+                onHeatmapPaletteChange(heatmapPalette === 'standard' ? 'colorblind' : 'standard')
+              }
+              aria-pressed={heatmapPalette === 'colorblind'}
+              title="Alternar paleta de alto contraste accesible para daltonismo (escala Cividis azul-oro)"
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium border transition-all ${
+                heatmapPalette === 'colorblind'
+                  ? 'bg-sky-500/20 text-sky-300 border-sky-500/50 font-semibold'
+                  : 'bg-slate-950 text-slate-400 border-slate-800 hover:text-slate-200'
+              }`}
+            >
+              <Eye className="w-3.5 h-3.5 text-sky-400" />
+              <span>{heatmapPalette === 'colorblind' ? 'Paleta Daltonismo: Activa' : 'Modo Daltonismo'}</span>
+            </button>
+          )}
         </div>
       )}
 

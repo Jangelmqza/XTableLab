@@ -1,5 +1,10 @@
 import { useState } from 'react';
 import type { ElementData } from '../../types/element';
+import {
+  getDefaultNeutrons,
+  checkNuclearStability,
+  calculateElectronShells,
+} from '../../utils/nuclear';
 import { Atom, Plus, Minus, RotateCcw, AlertTriangle, CheckCircle, Sparkles } from 'lucide-react';
 
 interface AtomSimulatorProps {
@@ -8,10 +13,10 @@ interface AtomSimulatorProps {
 }
 
 export const AtomSimulator: React.FC<AtomSimulatorProps> = ({ elements, initialElement }) => {
-  // Protons, Neutrons, Electrons state
-  const defaultZ = initialElement ? initialElement.atomicNumber : 6; // Carbon default
-  const defaultMass = initialElement ? Math.round(initialElement.atomicMass) : 12;
-  const defaultN = Math.max(0, defaultMass - defaultZ);
+  // Protons, Neutrons, Electrons state using real most-abundant isotope neutrons
+  const defaultElement = initialElement || elements.find((e) => e.atomicNumber === 6) || elements[0];
+  const defaultZ = defaultElement.atomicNumber;
+  const defaultN = getDefaultNeutrons(defaultElement);
 
   const [protons, setProtons] = useState(defaultZ);
   const [neutrons, setNeutrons] = useState(defaultN);
@@ -26,61 +31,18 @@ export const AtomSimulator: React.FC<AtomSimulatorProps> = ({ elements, initialE
   // Net charge
   const netCharge = protons - electrons;
 
-  // Nuclear stability check
-  // For Z <= 20: N/Z around 1.0 is stable
-  // For 20 < Z <= 82: N/Z increases up to ~1.5
-  // For Z > 82: All isotopes are radioactive
-  const checkStability = (): { isStable: boolean; reason: string } => {
-    if (protons === 0) return { isStable: false, reason: 'Se requiere al menos 1 protón para un núcleo atómico.' };
-    if (protons === 1 && neutrons === 0) return { isStable: true, reason: 'Protio (¹H): Isótopo estable más simple sin neutrones.' };
-    if (protons === 1 && neutrons === 1) return { isStable: true, reason: 'Deuterio (²H): Isótopo estable del hidrógeno.' };
-    if (protons === 1 && neutrons === 2) return { isStable: false, reason: 'Tritio (³H): Radiactivo (emisión β⁻, vida media 12.3 años).' };
-    if (protons > 82) return { isStable: false, reason: 'Elemento superpesado (Z > 82). Todos los núcleos son intrínsecamente radiactivos.' };
+  // Nuclear stability check (handles Tc, Pm, Bi, N/Z belt and natural isotopes)
+  const stability = checkNuclearStability(protons, neutrons);
 
-    const ratio = neutrons / protons;
-    let idealRatio = 1.0;
-    if (protons > 20) {
-      idealRatio = 1.0 + ((protons - 20) / 62) * 0.5; // up to ~1.5 at Pb (82)
-    }
+  // Distribute electrons into Bohr shells respecting quantum sublevels
+  const currentShells = calculateElectronShells(electrons, activeElement);
 
-    if (Math.abs(ratio - idealRatio) < 0.22 && neutrons >= protons - 2) {
-      return { isStable: true, reason: `Isótopo estable dentro del cinturón de estabilidad nuclear (relación N/Z = ${ratio.toFixed(2)}).` };
-    } else if (ratio < idealRatio) {
-      return { isStable: false, reason: `Déficit de neutrones (N/Z = ${ratio.toFixed(2)}). Propenso a decaimiento por emisión de positrones (β⁺) o captura electrónica.` };
-    } else {
-      return { isStable: false, reason: `Exceso de neutrones (N/Z = ${ratio.toFixed(2)}). Propenso a decaimiento por emisión de electrones (β⁻).` };
-    }
-  };
-
-  const stability = checkStability();
-
-  // Distribute electrons into Bohr shells: 2, 8, 18, 32...
-  const calculateShells = (totalE: number): number[] => {
-    if (totalE <= 0) return [];
-    if (activeElement && totalE === activeElement.atomicNumber) {
-      return activeElement.electronsPerShell;
-    }
-    const maxCapacity = [2, 8, 18, 32, 50, 72];
-    const res: number[] = [];
-    let rem = totalE;
-    for (const cap of maxCapacity) {
-      if (rem <= 0) break;
-      const count = Math.min(rem, cap);
-      res.push(count);
-      rem -= count;
-    }
-    return res;
-  };
-
-  const currentShells = calculateShells(electrons);
-
-  // Load a preset
+  // Load a preset using real most-abundant isotope
   const loadElement = (z: number) => {
     const el = elements.find((e) => e.atomicNumber === z);
     if (!el) return;
     setProtons(el.atomicNumber);
-    const m = Math.round(el.atomicMass);
-    setNeutrons(Math.max(0, m - el.atomicNumber));
+    setNeutrons(getDefaultNeutrons(el));
     setElectrons(el.atomicNumber);
   };
 
@@ -100,7 +62,7 @@ export const AtomSimulator: React.FC<AtomSimulatorProps> = ({ elements, initialE
 
         {/* Quick Presets */}
         <div className="flex flex-wrap items-center gap-1.5">
-          <span className="text-xs text-slate-500 mr-1">Cargar átomo:</span>
+          <span className="text-xs text-slate-500 mr-1">Cargar núclido:</span>
           {[
             { z: 1, label: '¹H' },
             { z: 6, label: '¹²C' },
@@ -108,6 +70,8 @@ export const AtomSimulator: React.FC<AtomSimulatorProps> = ({ elements, initialE
             { z: 8, label: '¹⁶O' },
             { z: 11, label: '²³Na' },
             { z: 26, label: '⁵⁶Fe' },
+            { z: 29, label: '⁶³Cu' },
+            { z: 43, label: '⁹⁸Tc' },
             { z: 79, label: '¹⁹⁷Au' },
             { z: 92, label: '²³⁸U' },
           ].map((preset) => (
@@ -125,7 +89,7 @@ export const AtomSimulator: React.FC<AtomSimulatorProps> = ({ elements, initialE
               setNeutrons(0);
               setElectrons(1);
             }}
-            title="Reiniciar a Hidrógeno neutro"
+            title="Reiniciar a Hidrógeno neutro (¹H)"
             className="p-1.5 rounded-lg bg-slate-800 text-slate-400 hover:text-white transition-colors"
           >
             <RotateCcw className="w-4 h-4" />
@@ -149,6 +113,7 @@ export const AtomSimulator: React.FC<AtomSimulatorProps> = ({ elements, initialE
             <div className="flex items-center justify-between gap-3">
               <button
                 onClick={() => setProtons((p) => Math.max(1, p - 1))}
+                aria-label="Restar un protón"
                 className="w-10 h-10 rounded-xl bg-slate-800 hover:bg-rose-900/40 text-white flex items-center justify-center border border-slate-700 transition-colors"
               >
                 <Minus className="w-4 h-4" />
@@ -156,6 +121,7 @@ export const AtomSimulator: React.FC<AtomSimulatorProps> = ({ elements, initialE
               <span className="text-3xl font-black font-mono text-white">{protons}</span>
               <button
                 onClick={() => setProtons((p) => Math.min(118, p + 1))}
+                aria-label="Sumar un protón"
                 className="w-10 h-10 rounded-xl bg-slate-800 hover:bg-rose-900/40 text-white flex items-center justify-center border border-slate-700 transition-colors"
               >
                 <Plus className="w-4 h-4" />
@@ -175,6 +141,7 @@ export const AtomSimulator: React.FC<AtomSimulatorProps> = ({ elements, initialE
             <div className="flex items-center justify-between gap-3">
               <button
                 onClick={() => setNeutrons((n) => Math.max(0, n - 1))}
+                aria-label="Restar un neutrón"
                 className="w-10 h-10 rounded-xl bg-slate-800 hover:bg-indigo-900/40 text-white flex items-center justify-center border border-slate-700 transition-colors"
               >
                 <Minus className="w-4 h-4" />
@@ -182,6 +149,7 @@ export const AtomSimulator: React.FC<AtomSimulatorProps> = ({ elements, initialE
               <span className="text-3xl font-black font-mono text-white">{neutrons}</span>
               <button
                 onClick={() => setNeutrons((n) => Math.min(180, n + 1))}
+                aria-label="Sumar un neutrón"
                 className="w-10 h-10 rounded-xl bg-slate-800 hover:bg-indigo-900/40 text-white flex items-center justify-center border border-slate-700 transition-colors"
               >
                 <Plus className="w-4 h-4" />
@@ -201,6 +169,7 @@ export const AtomSimulator: React.FC<AtomSimulatorProps> = ({ elements, initialE
             <div className="flex items-center justify-between gap-3">
               <button
                 onClick={() => setElectrons((e) => Math.max(0, e - 1))}
+                aria-label="Restar un electrón"
                 className="w-10 h-10 rounded-xl bg-slate-800 hover:bg-sky-900/40 text-white flex items-center justify-center border border-slate-700 transition-colors"
               >
                 <Minus className="w-4 h-4" />
@@ -208,6 +177,7 @@ export const AtomSimulator: React.FC<AtomSimulatorProps> = ({ elements, initialE
               <span className="text-3xl font-black font-mono text-white">{electrons}</span>
               <button
                 onClick={() => setElectrons((e) => Math.min(118, e + 1))}
+                aria-label="Sumar un electrón"
                 className="w-10 h-10 rounded-xl bg-slate-800 hover:bg-sky-900/40 text-white flex items-center justify-center border border-slate-700 transition-colors"
               >
                 <Plus className="w-4 h-4" />
@@ -215,14 +185,23 @@ export const AtomSimulator: React.FC<AtomSimulatorProps> = ({ elements, initialE
             </div>
           </div>
 
-          {/* Quick Balance Button */}
-          <button
-            onClick={() => setElectrons(protons)}
-            className="w-full py-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700 transition-all flex items-center justify-center gap-2"
-          >
-            <Sparkles className="w-4 h-4 text-amber-400" />
-            Neutralizar átomo (e⁻ = p⁺)
-          </button>
+          {/* Quick Balance Buttons */}
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              onClick={() => setElectrons(protons)}
+              className="py-2.5 px-3 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700 transition-all flex items-center justify-center gap-1.5"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+              <span>Neutralizar (e⁻ = p⁺)</span>
+            </button>
+            <button
+              onClick={() => activeElement && setNeutrons(getDefaultNeutrons(activeElement))}
+              className="py-2.5 px-3 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700 transition-all flex items-center justify-center gap-1.5"
+            >
+              <Atom className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+              <span>Isótopo común</span>
+            </button>
+          </div>
         </div>
 
         {/* Central Bohr Canvas (Middle 5 cols) */}
@@ -236,7 +215,7 @@ export const AtomSimulator: React.FC<AtomSimulatorProps> = ({ elements, initialE
             <svg width="320" height="320" viewBox="0 0 320 320" className="overflow-visible">
               {/* Concentric Shells */}
               {currentShells.map((count, idx) => {
-                const r = 36 + idx * 24;
+                const r = 36 + idx * 20;
                 return (
                   <g key={`orbit-${idx}`}>
                     <circle
@@ -323,7 +302,7 @@ export const AtomSimulator: React.FC<AtomSimulatorProps> = ({ elements, initialE
         </div>
 
         {/* Real-Time Atom Status & Isotope Card (Right 3 cols) */}
-        <div className="lg:col-span-3 space-y-4">
+        <div className="lg:col-span-3 space-y-4" aria-live="polite">
           {/* Identity & Isotope Symbol */}
           <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl space-y-3">
             <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
@@ -386,6 +365,7 @@ export const AtomSimulator: React.FC<AtomSimulatorProps> = ({ elements, initialE
 
           {/* Nuclear Stability */}
           <div
+            role="status"
             className={`border rounded-2xl p-4 shadow-xl space-y-2 ${
               stability.isStable
                 ? 'bg-emerald-950/20 border-emerald-500/40 text-emerald-300'
