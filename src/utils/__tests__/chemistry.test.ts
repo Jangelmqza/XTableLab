@@ -18,6 +18,7 @@ import {
   getPhaseAtTemperature,
   TREND_INFO,
 } from '../trends';
+import { VSEPR_MOLECULES } from '../../data/vseprData';
 import { generateQuestion } from '../../components/Quiz/QuizModule';
 
 const getElementByZ = (z: number) => {
@@ -217,4 +218,60 @@ describe('QuizModule.tsx — Generador de preguntas científicas sin duplicados'
     }
   });
 });
+
+describe('vseprData.ts — Validación matemática y química de moléculas 3D VSEPR', () => {
+  it('contiene moléculas con conteo coherente de número estérico (SN = X + E)', () => {
+    expect(VSEPR_MOLECULES.length).toBeGreaterThanOrEqual(14);
+    for (const mol of VSEPR_MOLECULES) {
+      expect(mol.stericNumber).toBe(mol.bondedAtomsCount + mol.lonePairsCount);
+      expect(mol.stericNumber).toBeGreaterThanOrEqual(2);
+      expect(mol.stericNumber).toBeLessThanOrEqual(6);
+      expect(mol.atoms.length).toBe(mol.bondedAtomsCount + 1); // 1 central + X ligandos
+      expect(mol.lonePairs.length).toBe(mol.lonePairsCount);
+    }
+  });
+
+  it('verifica que las coordenadas 3D de átomos y enlaces sean válidas', () => {
+    for (const mol of VSEPR_MOLECULES) {
+      // Posición del átomo central en o cerca del origen
+      const central = mol.atoms.find((a) => a.isCentral);
+      expect(central).toBeDefined();
+
+      for (const atom of mol.atoms) {
+        expect(atom.position.length).toBe(3);
+        atom.position.forEach((coord) => {
+          expect(typeof coord).toBe('number');
+          expect(isNaN(coord)).toBe(false);
+        });
+      }
+
+      // Enlaces apuntan a índices válidos dentro de atoms
+      for (const [i1, i2] of mol.bonds) {
+        expect(i1).toBeGreaterThanOrEqual(0);
+        expect(i1).toBeLessThan(mol.atoms.length);
+        expect(i2).toBeGreaterThanOrEqual(0);
+        expect(i2).toBeLessThan(mol.atoms.length);
+        expect(i1).not.toBe(i2);
+      }
+    }
+  });
+
+  it('clasifica polaridad y geometrías canónicas correctamente', () => {
+    const h2o = VSEPR_MOLECULES.find((m) => m.id === 'h2o');
+    expect(h2o?.molecularGeometry).toBe('Angular');
+    expect(h2o?.polarity).toBe('Polar');
+    expect(h2o?.hybridization).toBe('sp³');
+
+    const ch4 = VSEPR_MOLECULES.find((m) => m.id === 'ch4');
+    expect(ch4?.molecularGeometry).toBe('Tetraédrica');
+    expect(ch4?.polarity).toBe('No polar');
+    expect(ch4?.hybridization).toBe('sp³');
+
+    const sf6 = VSEPR_MOLECULES.find((m) => m.id === 'sf6');
+    expect(sf6?.molecularGeometry).toBe('Octaédrica');
+    expect(sf6?.polarity).toBe('No polar');
+    expect(sf6?.hybridization).toBe('sp³d²');
+  });
+});
+
 

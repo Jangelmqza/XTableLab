@@ -33,6 +33,11 @@ const ChemicalBondSimulator = lazy(() =>
     default: m.ChemicalBondSimulator,
   }))
 );
+const Vsepr3DSimulator = lazy(() =>
+  import('./components/Simulators/Vsepr3DSimulator').then((m) => ({
+    default: m.Vsepr3DSimulator,
+  }))
+);
 const QuizModule = lazy(() =>
   import('./components/Quiz/QuizModule').then((m) => ({
     default: m.QuizModule,
@@ -54,7 +59,7 @@ export function App() {
     try {
       const params = new URLSearchParams(window.location.search);
       const tabParam = params.get('tab') as AppTab | null;
-      if (tabParam && ['table', 'compare', 'atom', 'config', 'bonds', 'quiz'].includes(tabParam)) {
+      if (tabParam && ['table', 'compare', 'atom', 'config', 'bonds', 'vsepr', 'quiz'].includes(tabParam)) {
         return tabParam;
       }
     } catch {
@@ -188,6 +193,8 @@ export function App() {
       } else if (e.key === '5') {
         setActiveTab('bonds');
       } else if (e.key === '6') {
+        setActiveTab('vsepr');
+      } else if (e.key === '7') {
         setActiveTab('quiz');
       }
     };
@@ -463,7 +470,10 @@ export function App() {
             />
           )}
 
-          {/* Tab 6: Interactive Quizzes */}
+          {/* Tab 6: 3D Molecular Geometry (VSEPR) */}
+          {activeTab === 'vsepr' && <Vsepr3DSimulator />}
+
+          {/* Tab 7: Interactive Quizzes */}
           {activeTab === 'quiz' && <QuizModule elements={ELEMENTS_DATA} />}
         </Suspense>
       </main>

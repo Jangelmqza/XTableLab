@@ -4,6 +4,7 @@ import {
   Atom,
   Zap,
   Flame,
+  Box,
   GraduationCap,
   HelpCircle,
   Download,
@@ -13,7 +14,7 @@ import {
 import { APP_VERSION } from '../../version';
 
 
-export type AppTab = 'table' | 'compare' | 'atom' | 'config' | 'bonds' | 'quiz';
+export type AppTab = 'table' | 'compare' | 'atom' | 'config' | 'bonds' | 'vsepr' | 'quiz';
 
 interface NavbarProps {
   activeTab: AppTab;
@@ -47,6 +48,7 @@ export const Navbar: React.FC<NavbarProps> = ({
     { id: 'atom', label: 'Simulador de Átomos', icon: Atom },
     { id: 'config', label: 'Configuración Electrónica', icon: Zap },
     { id: 'bonds', label: 'Enlaces Químicos', icon: Flame },
+    { id: 'vsepr', label: 'Moléculas 3D', icon: Box },
     { id: 'quiz', label: 'Quizzes', icon: GraduationCap },
   ];
 

@@ -4,12 +4,13 @@
  *   git commit -m "chore: bump version to X.X.X"
  *
  * Historial:
+ *  2.0.0 (2026-10-19) — Módulo de Geometría Molecular 3D (VSEPR / RPECV): Visualizador WebGL interactivo con Three.js, rotación táctil/ratón, zoom, auto-rotación, inspección tridimensional de moléculas reales de SN 2 a 6, representación de nubes de pares solitarios (LP), vector dipolar neto, ángulos reales vs ideales, hibridación orbital (sp a sp³d²) y constructor interactivo Sandbox AXE.
  *  1.3.0 (2026-10-19) — Precisión Científica, Arquitectura, Accesibilidad, Rendimiento y Tests: Anomalías cuánticas reales vs. Aufbau ideal (D1), orden de notación cuántica (D2), alineación de textos de radio y electronegatividad (D3), isótopos más abundantes, estabilidad nuclear (Tc, Pm, Bi) y llenado cuántico de iones (D4), clasificación unificada de enlaces con mar electrónico metálico (D5), paleta Cividis para daltonismo, lazy loading + React.memo y suite de tests unitarios con Vitest.
  *  1.2.1 (2026-10-18) — Hotfix: Corrección de respuesta C-H en quiz de enlaces, diseño de 2 columnas y densidades bajas en comparador, búsqueda sin acentos, orientación libre en PWA, utilidades de animación/scrollbar y modo estricto en TypeScript.
  *  1.2.0 (2026-10-02) — Mejoras urgentes: Modo Claro / Oscuro con persistencia en localStorage, navegación bidimensional por teclado (flechas, Home, End), atajos globales (T, /, 1-6, Esc) y mejoras completas de accesibilidad WCAG.
  *  1.1.0 (2026-10-01) — Mejoras críticas: Vista móvil adaptable (Fichas), Deep Linking por URL, botón compartir elemento, persistencia de quizzes en localStorage y soporte de instalación PWA.
  *  1.0.0 (2026-10-01) — Lanzamiento inicial: tabla interactiva, 5 simuladores, quizzes
  */
-export const APP_VERSION = '1.3.0';
+export const APP_VERSION = '2.0.0';
 export const APP_BUILD_DATE = '2026-10-19';
 
