@@ -45,7 +45,7 @@ export const Navbar: React.FC<NavbarProps> = ({
       badge: comparisonCount > 0 ? comparisonCount : undefined,
     },
     { id: 'atom', label: 'Simulador Átomo', icon: Atom },
-    { id: 'config', label: 'Aufbau Cuántico', icon: Zap },
+    { id: 'config', label: 'Configuración Electrónica', icon: Zap },
     { id: 'bonds', label: 'Enlaces Químicos', icon: Flame },
     { id: 'quiz', label: 'Quizzes Didácticos', icon: GraduationCap },
   ];
