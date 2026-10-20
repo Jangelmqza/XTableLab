@@ -19,6 +19,11 @@ import {
   TREND_INFO,
 } from '../trends';
 import { VSEPR_MOLECULES } from '../../data/vseprData';
+import {
+  getValenceElectrons,
+  calculateAutoLonePairs,
+  generateVsepr3DGeometry,
+} from '../vseprEngine';
 import { generateQuestion } from '../../components/Quiz/QuizModule';
 
 const getElementByZ = (z: number) => {
@@ -271,6 +276,45 @@ describe('vseprData.ts — Validación matemática y química de moléculas 3D V
     expect(sf6?.molecularGeometry).toBe('Octaédrica');
     expect(sf6?.polarity).toBe('No polar');
     expect(sf6?.hybridization).toBe('sp³d²');
+  });
+
+  it('motor interactivo vseprEngine calcula pares libres y geometrías dinámicas personalizadas', () => {
+    const carbon = getElementByZ(6);
+    const nitrogen = getElementByZ(7);
+    const oxygen = getElementByZ(8);
+
+    expect(getValenceElectrons(carbon)).toBe(4);
+    expect(getValenceElectrons(nitrogen)).toBe(5);
+    expect(getValenceElectrons(oxygen)).toBe(6);
+
+    // CH4: 4 enlaces simples -> 0 pares libres
+    const ch4Ligands = [
+      { id: '1', symbol: 'H', name: 'Hidrógeno', bondOrder: 1 as const },
+      { id: '2', symbol: 'H', name: 'Hidrógeno', bondOrder: 1 as const },
+      { id: '3', symbol: 'H', name: 'Hidrógeno', bondOrder: 1 as const },
+      { id: '4', symbol: 'H', name: 'Hidrógeno', bondOrder: 1 as const },
+    ];
+    expect(calculateAutoLonePairs(carbon, ch4Ligands)).toBe(0);
+
+    // H2O: 2 enlaces simples en O -> 2 pares libres
+    const h2oLigands = [
+      { id: '1', symbol: 'H', name: 'Hidrógeno', bondOrder: 1 as const },
+      { id: '2', symbol: 'H', name: 'Hidrógeno', bondOrder: 1 as const },
+    ];
+    expect(calculateAutoLonePairs(oxygen, h2oLigands)).toBe(2);
+
+    // Generar geometría personalizada para CO2 (C con 2 oxígenos de doble enlace)
+    const co2Ligands = [
+      { id: '1', symbol: 'O', name: 'Oxígeno', bondOrder: 2 as const },
+      { id: '2', symbol: 'O', name: 'Oxígeno', bondOrder: 2 as const },
+    ];
+    const co2Mol = generateVsepr3DGeometry(carbon, co2Ligands, 0);
+    expect(co2Mol.molecularGeometry).toBe('Lineal');
+    expect(co2Mol.hybridization).toBe('sp');
+    expect(co2Mol.idealAngle).toBe('180°');
+    expect(co2Mol.atoms.length).toBe(3);
+    expect(co2Mol.bonds.length).toBe(2);
+    expect(co2Mol.bonds[0].order).toBe(2);
   });
 });
 
