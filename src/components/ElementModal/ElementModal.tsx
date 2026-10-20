@@ -15,6 +15,7 @@ import {
   Radiation,
   Share2,
   Check,
+  Box,
 } from 'lucide-react';
 
 interface ElementModalProps {
@@ -23,7 +24,7 @@ interface ElementModalProps {
   onNavigate: (step: number) => void;
   onAddToCompare: (element: ElementData) => void;
   isInComparison: boolean;
-  onGoToSimulator: (type: 'atom' | 'electron' | 'bond', element: ElementData) => void;
+  onGoToSimulator: (type: 'atom' | 'electron' | 'bond' | 'vsepr', element: ElementData) => void;
 }
 
 export const ElementModal: React.FC<ElementModalProps> = ({
@@ -443,6 +444,14 @@ export const ElementModal: React.FC<ElementModalProps> = ({
             >
               <Flame className="w-4 h-4 text-rose-400" />
               <span>Simular Enlace</span>
+            </button>
+
+            <button
+              onClick={() => onGoToSimulator('vsepr', element)}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-emerald-950/60 text-emerald-300 border border-emerald-800/60 hover:bg-emerald-900/60 transition-colors"
+            >
+              <Box className="w-4 h-4 text-emerald-400" />
+              <span>Molécula 3D</span>
             </button>
           </div>
 

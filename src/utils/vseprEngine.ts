@@ -94,9 +94,10 @@ export function generateVsepr3DGeometry(
   lonePairsCount: number
 ): GeneratedVseprMolecule {
   const X = ligands.length;
-  const E = Math.max(0, Math.min(3, lonePairsCount));
-  const rawSN = X + E;
-  const SN = Math.min(6, Math.max(2, rawSN));
+  // Ensure X + E never exceeds 6 so 3D direction vectors never overflow
+  const maxAllowedE = Math.max(0, 6 - X);
+  const E = Math.max(0, Math.min(3, Math.min(lonePairsCount, maxAllowedE)));
+  const SN = Math.min(6, Math.max(2, X + E));
 
   const centralProps = getElementVisualProps(centralElement.symbol);
   const centralAtom: VseprAtom = {
@@ -125,14 +126,22 @@ export function generateVsepr3DGeometry(
   const lpDist = 1.35;
 
   if (SN === 2) {
-    // AX2: Linear (180°)
+    // AX2: Linear (180°) or AX1 (Diatomic)
     electronGeometry = 'Lineal';
     hybridization = 'sp';
-    idealAngle = '180°';
-    realAngle = '180°';
-    molecularGeometry = 'Lineal';
-    description = 'Geometría lineal con hibridación sp y ángulo de enlace de 180°.';
-    academicNotes = 'Los dos dominios electrónicos se ubican en extremos opuestos minimizando al máximo la repulsión coulómbica.';
+    if (X === 1) {
+      molecularGeometry = 'Lineal';
+      idealAngle = 'N/A';
+      realAngle = 'N/A';
+      description = 'Molécula diatómica con un único enlace directo entre ambos átomos.';
+      academicNotes = 'Al constar únicamente de dos átomos enlazados, no existe un ángulo de enlace interatómico (se requieren al menos 3 átomos).';
+    } else {
+      idealAngle = '180°';
+      realAngle = '180°';
+      molecularGeometry = 'Lineal';
+      description = 'Geometría lineal con hibridación sp y ángulo de enlace de 180°.';
+      academicNotes = 'Los dos dominios electrónicos se ubican en extremos opuestos minimizando al máximo la repulsión coulómbica.';
+    }
 
     const directions: [number, number, number][] = [
       [0, 0, bondDist],
@@ -524,6 +533,16 @@ export function generateVsepr3DGeometry(
     netDipole[0] += norm[0] * deltaEN;
     netDipole[1] += norm[1] * deltaEN;
     netDipole[2] += norm[2] * deltaEN;
+  });
+
+  // Lone pairs electronic dipole contribution
+  lonePairs.forEach((lp) => {
+    const dir = lp.direction;
+    const mag = Math.sqrt(dir[0] * dir[0] + dir[1] * dir[1] + dir[2] * dir[2]) || 1;
+    const lpWeight = 0.55;
+    netDipole[0] += (dir[0] / mag) * lpWeight;
+    netDipole[1] += (dir[1] / mag) * lpWeight;
+    netDipole[2] += (dir[2] / mag) * lpWeight;
   });
 
   const dipoleMag = Math.sqrt(

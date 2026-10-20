@@ -315,6 +315,30 @@ describe('vseprData.ts — Validación matemática y química de moléculas 3D V
     expect(co2Mol.atoms.length).toBe(3);
     expect(co2Mol.bonds.length).toBe(2);
     expect(co2Mol.bonds[0].order).toBe(2);
+
+    // Caso diatómico (X = 1): sin ángulo interatómico aplicable
+    const hclLigands = [{ id: '1', symbol: 'Cl', name: 'Cloro', bondOrder: 1 as const }];
+    const hydrogen = getElementByZ(1);
+    const hclMol = generateVsepr3DGeometry(hydrogen, hclLigands, 0);
+    expect(hclMol.molecularGeometry).toBe('Lineal');
+    expect(hclMol.idealAngle).toBe('N/A');
+    expect(hclMol.realAngle).toBe('N/A');
+    expect(hclMol.atoms.length).toBe(2);
+
+    // Limitación física: X + E no excede 6 dominios
+    const fiveLigands = [
+      { id: '1', symbol: 'F', name: 'Flúor', bondOrder: 1 as const },
+      { id: '2', symbol: 'F', name: 'Flúor', bondOrder: 1 as const },
+      { id: '3', symbol: 'F', name: 'Flúor', bondOrder: 1 as const },
+      { id: '4', symbol: 'F', name: 'Flúor', bondOrder: 1 as const },
+      { id: '5', symbol: 'F', name: 'Flúor', bondOrder: 1 as const },
+    ];
+    const sulfur = getElementByZ(16);
+    // Intentar 3 pares libres con 5 ligandos (5+3=8) debe acotarse a 1 par libre máximo (5+1=6)
+    const clampedMol = generateVsepr3DGeometry(sulfur, fiveLigands, 3);
+    expect(clampedMol.stericNumber).toBe(6);
+    expect(clampedMol.lonePairsCount).toBe(1);
+    expect(clampedMol.bondedCount).toBe(5);
   });
 });
 

@@ -29,7 +29,11 @@ import {
   RefreshCw
 } from 'lucide-react';
 
-export const Vsepr3DSimulator: React.FC = () => {
+interface Vsepr3DSimulatorProps {
+  initialElement?: ElementData | null;
+}
+
+export const Vsepr3DSimulator: React.FC<Vsepr3DSimulatorProps> = ({ initialElement }) => {
   const mountRef = useRef<HTMLDivElement>(null);
 
   // Tab mode: 'presets' (Catálogo) or 'builder' (Laboratorio interactivo)
@@ -41,14 +45,27 @@ export const Vsepr3DSimulator: React.FC = () => {
   const [filterPolarity, setFilterPolarity] = useState<'all' | 'Polar' | 'No polar'>('all');
 
   // Interactive Builder state
-  const [centralSymbol, setCentralSymbol] = useState<string>('C');
+  const [centralSymbol, setCentralSymbol] = useState<string>(
+    initialElement ? initialElement.symbol : 'C'
+  );
   const [ligands, setLigands] = useState<CustomLigand[]>([
     { id: '1', symbol: 'H', name: 'Hidrógeno', bondOrder: 1 },
     { id: '2', symbol: 'H', name: 'Hidrógeno', bondOrder: 1 },
     { id: '3', symbol: 'H', name: 'Hidrógeno', bondOrder: 1 },
     { id: '4', symbol: 'H', name: 'Hidrógeno', bondOrder: 1 },
   ]);
-  const [manualLonePairs, setManualLonePairs] = useState<number>(0);
+  const [manualLonePairs, setManualLonePairs] = useState<number>(() => {
+    if (initialElement) {
+      const defaultLigands: CustomLigand[] = [
+        { id: '1', symbol: 'H', name: 'Hidrógeno', bondOrder: 1 },
+        { id: '2', symbol: 'H', name: 'Hidrógeno', bondOrder: 1 },
+        { id: '3', symbol: 'H', name: 'Hidrógeno', bondOrder: 1 },
+        { id: '4', symbol: 'H', name: 'Hidrógeno', bondOrder: 1 },
+      ];
+      return calculateAutoLonePairs(initialElement, defaultLigands);
+    }
+    return 0;
+  });
   const [newBondOrder, setNewBondOrder] = useState<1 | 2 | 3>(1);
   const [isElementPickerOpen, setIsElementPickerOpen] = useState<'central' | 'ligand' | null>(null);
   const [pickerSearch, setPickerSearch] = useState<string>('');
@@ -503,9 +520,9 @@ export const Vsepr3DSimulator: React.FC = () => {
     const updated = [...ligands, newLig];
     setLigands(updated);
 
-    // Auto-update lone pairs based on Lewis rules
+    // Auto-update lone pairs based on Lewis rules, capped to prevent steric number > 6
     const autoLP = calculateAutoLonePairs(centralElement, updated);
-    setManualLonePairs(autoLP);
+    setManualLonePairs(Math.min(autoLP, Math.max(0, 6 - updated.length)));
   };
 
   const handleRemoveLigand = (id: string) => {

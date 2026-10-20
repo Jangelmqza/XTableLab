@@ -310,13 +310,15 @@ export function App() {
 
   // Handle jump from modal to simulator
   const handleGoToSimulator = useCallback(
-    (type: 'atom' | 'electron' | 'bond', el: ElementData) => {
+    (type: 'atom' | 'electron' | 'bond' | 'vsepr', el: ElementData) => {
       setSimulatorTargetElement(el);
       setSelectedElement(null);
       if (type === 'atom') setActiveTab('atom');
       else if (type === 'electron') setActiveTab('config');
       else if (type === 'bond') {
         setActiveTab('bonds');
+      } else if (type === 'vsepr') {
+        setActiveTab('vsepr');
       }
     },
     []
@@ -449,6 +451,7 @@ export function App() {
           {/* Tab 3: Atom Simulator */}
           {activeTab === 'atom' && (
             <AtomSimulator
+              key={simulatorTargetElement ? `atom-${simulatorTargetElement.atomicNumber}` : 'atom-default'}
               elements={ELEMENTS_DATA}
               initialElement={simulatorTargetElement}
             />
@@ -457,6 +460,7 @@ export function App() {
           {/* Tab 4: Quantum Electron Configuration (Aufbau) */}
           {activeTab === 'config' && (
             <ElectronConfigSimulator
+              key={simulatorTargetElement ? `config-${simulatorTargetElement.atomicNumber}` : 'config-default'}
               elements={ELEMENTS_DATA}
               initialElement={simulatorTargetElement}
             />
@@ -465,13 +469,19 @@ export function App() {
           {/* Tab 5: Chemical Bond Simulator */}
           {activeTab === 'bonds' && (
             <ChemicalBondSimulator
+              key={simulatorTargetElement ? `bond-${simulatorTargetElement.atomicNumber}` : 'bond-default'}
               elements={ELEMENTS_DATA}
               initialElement={simulatorTargetElement}
             />
           )}
 
           {/* Tab 6: 3D Molecular Geometry (VSEPR) */}
-          {activeTab === 'vsepr' && <Vsepr3DSimulator />}
+          {activeTab === 'vsepr' && (
+            <Vsepr3DSimulator
+              key={simulatorTargetElement ? `vsepr-${simulatorTargetElement.atomicNumber}` : 'vsepr-default'}
+              initialElement={simulatorTargetElement}
+            />
+          )}
 
           {/* Tab 7: Interactive Quizzes */}
           {activeTab === 'quiz' && <QuizModule elements={ELEMENTS_DATA} />}

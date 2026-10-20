@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import type { ElementData } from '../../types/element';
+import { CATEGORY_COLORS } from '../../data/elementsData';
 import { classifyBond, type QuizBondLabel } from '../../utils/bonds';
 import {
   GraduationCap,
@@ -39,21 +40,37 @@ function shuffleArray<T>(items: T[]): T[] {
 }
 
 const BOND_QUIZ_PAIRS: [string, string][] = [
+  // Enlaces Iónicos
   ['Na', 'Cl'],
   ['K', 'F'],
   ['Mg', 'O'],
   ['Ca', 'Cl'],
+  ['Ca', 'F'],
+  ['Li', 'Br'],
+  ['Ba', 'S'],
+  // Enlaces Covalentes Polares
   ['H', 'O'],
   ['H', 'Cl'],
+  ['H', 'F'],
   ['C', 'O'],
   ['N', 'H'],
+  ['P', 'Cl'],
+  ['S', 'O'],
+  ['B', 'F'],
+  ['Si', 'O'],
+  // Enlaces Covalentes No Polares / Apoliares
   ['C', 'H'],
+  ['C', 'C'],
   ['N', 'N'],
   ['O', 'O'],
   ['Cl', 'Cl'],
+  ['Br', 'Br'],
+  // Enlaces Metálicos / Aleaciones
   ['Cu', 'Zn'],
   ['Fe', 'Ni'],
   ['Au', 'Ag'],
+  ['Pt', 'Au'],
+  ['Ti', 'Al'],
 ];
 
 // Standalone question generator function (exported for unit testing)
@@ -77,7 +94,7 @@ export function generateQuestion(cat: QuizCategory, elements: ElementData[]): Qu
         prompt: `¿Cuál es el símbolo químico correcto para el elemento "${target.name}" (Z = ${target.atomicNumber})?`,
         options,
         correctIndex,
-        explanation: `El símbolo de ${target.name} es ${target.symbol}. Su masa atómica aproximada es ${target.atomicMass.toFixed(2)} u y pertenece a la categoría de ${target.category}.`,
+        explanation: `El símbolo de ${target.name} es ${target.symbol}. Su masa atómica aproximada es ${target.atomicMass.toFixed(2)} u y pertenece a la categoría de ${CATEGORY_COLORS[target.category]?.name || target.category}.`,
       };
     } else {
       const options = shuffleArray([target.name, ...wrong.map((w) => w.name)]);
