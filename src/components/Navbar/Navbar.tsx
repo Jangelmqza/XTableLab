@@ -101,7 +101,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 }`}
               >
                 <Icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-slate-400'}`} />
-                <span className="hidden md:inline">{tab.label}</span>
+                <span>{tab.label}</span>
                 {tab.badge !== undefined && (
                   <span className="ml-1 w-4 h-4 rounded-full bg-amber-400 text-slate-950 font-bold text-[10px] flex items-center justify-center shadow">
                     {tab.badge}
