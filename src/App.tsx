@@ -349,7 +349,11 @@ export function App() {
       />
 
       {/* Main View Area */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 py-6 space-y-6">
+      <main
+        className={`flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 py-6 space-y-6 ${
+          activeTab === 'table' ? '2xl:max-w-[1760px]' : ''
+        }`}
+      >
         {/* Tab 1: Periodic Table */}
         {activeTab === 'table' && (
           <div className="space-y-4">

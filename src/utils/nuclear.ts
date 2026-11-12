@@ -98,6 +98,32 @@ export const MOST_ABUNDANT_NEUTRONS: Record<number, number> = {
   90: 142, // ²³²Th
   91: 140, // ²³¹Pa
   92: 146, // ²³⁸U
+  93: 144, // ²³⁷Np
+  94: 150, // ²⁴⁴Pu
+  95: 148, // ²⁴³Am
+  96: 151, // ²⁴⁷Cm
+  97: 150, // ²⁴⁷Bk
+  98: 153, // ²⁵¹Cf
+  99: 153, // ²⁵²Es
+  100: 157, // ²⁵⁷Fm
+  101: 157, // ²⁵⁸Md
+  102: 157, // ²⁵⁹No
+  103: 163, // ²⁶⁶Lr
+  104: 163, // ²⁶⁷Rf
+  105: 163, // ²⁶⁸Db
+  106: 163, // ²⁶⁹Sg
+  107: 163, // ²⁷⁰Bh
+  108: 169, // ²⁷⁷Hs
+  109: 169, // ²⁷⁸Mt
+  110: 171, // ²⁸¹Ds
+  111: 171, // ²⁸²Rg
+  112: 173, // ²⁸⁵Cn
+  113: 173, // ²⁸⁶Nh
+  114: 175, // ²⁸⁹Fl
+  115: 175, // ²⁹⁰Mc
+  116: 177, // ²⁹³Lv
+  117: 177, // ²⁹⁴Ts
+  118: 176, // ²⁹⁴Og
 };
 
 /**
@@ -200,7 +226,8 @@ export function checkNuclearStability(
 
 /**
  * Calcula la distribución de electrones por capa principal (n = 1..7)
- * tanto para átomos neutros como para iones, respetando el llenado cuántico de subniveles.
+ * tanto para átomos neutros como para iones, respetando el orden físico de ionización
+ * (los electrones de valencia con mayor n se pierden primero, p. ej. 4s antes de 3d en metales de transición).
  */
 export function calculateElectronShells(
   totalElectrons: number,
@@ -211,6 +238,48 @@ export function calculateElectronShells(
     return activeElement.electronsPerShell;
   }
 
+  // Si hay un elemento activo y es un catión, retirar electrones según regla física de ionización
+  if (activeElement && totalElectrons < activeElement.atomicNumber) {
+    const neutralBoxes = calculateOrbitalBoxes(activeElement.atomicNumber, 'real');
+    const sublevels = neutralBoxes.map((item) => ({
+      name: item.sublevel.name,
+      n: item.sublevel.n,
+      l: item.sublevel.l,
+      count: item.electronsCount,
+    }));
+
+    let toRemove = activeElement.atomicNumber - totalElectrons;
+
+    // Orden de pérdida de electrones: mayor n primero; si n es igual, mayor l primero (ej. 4s antes de 3d)
+    const sortedForRemoval = [...sublevels].sort((a, b) => b.n - a.n || b.l - a.l);
+
+    for (const sub of sortedForRemoval) {
+      if (toRemove <= 0) break;
+      const removeCount = Math.min(toRemove, sub.count);
+      sub.count -= removeCount;
+      toRemove -= removeCount;
+    }
+
+    const shellsMap = new Map<number, number>();
+    let maxN = 1;
+    for (const sub of sublevels) {
+      if (sub.count > 0) {
+        if (sub.n > maxN) maxN = sub.n;
+        shellsMap.set(sub.n, (shellsMap.get(sub.n) ?? 0) + sub.count);
+      }
+    }
+
+    const result: number[] = [];
+    for (let n = 1; n <= maxN; n++) {
+      result.push(shellsMap.get(n) ?? 0);
+    }
+    while (result.length > 1 && result[result.length - 1] === 0) {
+      result.pop();
+    }
+    return result;
+  }
+
+  // Para aniones (totalElectrons > Z) o sin elemento de referencia
   const clamped = Math.min(118, totalElectrons);
   const sublevels = calculateOrbitalBoxes(clamped, 'real');
   const shellsMap = new Map<number, number>();
@@ -227,6 +296,9 @@ export function calculateElectronShells(
   const result: number[] = [];
   for (let n = 1; n <= maxN; n++) {
     result.push(shellsMap.get(n) ?? 0);
+  }
+  while (result.length > 1 && result[result.length - 1] === 0) {
+    result.pop();
   }
   return result;
 }

@@ -8,6 +8,7 @@ import {
   type HeatmapPalette,
 } from '../../utils/trends';
 import { Radiation } from 'lucide-react';
+import { formatAtomicMass } from '../../utils/format';
 
 export type TableDisplayMode = 'category' | 'block' | 'phase' | 'heatmap';
 
@@ -23,6 +24,8 @@ interface ElementCardProps {
   isFilteredOut: boolean;
   isSelected: boolean;
   isInComparison: boolean;
+  /** Coincidencia exacta con la búsqueda (símbolo, Z o nombre completo). */
+  isExactMatch?: boolean;
   onSelect: (element: ElementData) => void;
   onToggleCompare?: (element: ElementData) => void;
   onGridKeyDown?: (e: React.KeyboardEvent, z: number) => void;
@@ -40,6 +43,7 @@ const ElementCardComponent: React.FC<ElementCardProps> = ({
   isFilteredOut,
   isSelected,
   isInComparison,
+  isExactMatch = false,
   onSelect,
   onToggleCompare,
   onGridKeyDown,
@@ -50,7 +54,16 @@ const ElementCardComponent: React.FC<ElementCardProps> = ({
   let bgClasses = 'bg-slate-900/60';
   let textCategoryClass = 'text-slate-200';
   let glowColor = 'rgba(59, 130, 246, 0.2)';
-  let extraLabel = element.atomicMass.toFixed(2);
+  const massLabel = formatAtomicMass(element, 2);
+  let extraLabel = massLabel;
+
+  // Los nombres largos (Rutherfordio, Darmstadtio...) usan un cuerpo de letra más compacto
+  const nameSizeClass =
+    element.name.length > 10
+      ? 'text-[7.5px] sm:text-[8px] xl:text-[9px] 2xl:text-[10px] tracking-tighter'
+      : element.name.length > 8
+        ? 'text-[8px] sm:text-[9px] xl:text-[9.5px] 2xl:text-[10.5px] tracking-tight'
+        : 'text-[9px] sm:text-[10px] 2xl:text-[11px]';
 
   const phaseAtTemp = getPhaseAtTemperature(element, temperatureK);
 
@@ -60,7 +73,7 @@ const ElementCardComponent: React.FC<ElementCardProps> = ({
     borderClasses = cat.border;
     textCategoryClass = cat.text;
     glowColor = cat.glow;
-    extraLabel = element.atomicMass.toFixed(2);
+    extraLabel = massLabel;
   } else if (displayMode === 'block') {
     const blk = BLOCK_COLORS[element.block];
     bgClasses = blk.bg;
@@ -131,7 +144,7 @@ const ElementCardComponent: React.FC<ElementCardProps> = ({
       id={`element-cell-${element.atomicNumber}`}
       role="button"
       tabIndex={isFilteredOut ? -1 : 0}
-      aria-label={`${element.name} (${element.symbol}), número atómico ${element.atomicNumber}, masa ${element.atomicMass.toFixed(2)}, periodo ${element.period}, ${element.group !== null ? `grupo ${element.group}` : 'serie f'}, bloque ${element.block}, categoría ${CATEGORY_COLORS[element.category]?.name || element.category}`}
+      aria-label={`${element.name} (${element.symbol}), número atómico ${element.atomicNumber}, masa ${massLabel}, periodo ${element.period}, ${element.group !== null ? `grupo ${element.group}` : 'serie f'}, bloque ${element.block}, categoría ${CATEGORY_COLORS[element.category]?.name || element.category}`}
       onClick={() => onSelect(element)}
       onKeyDown={(e) => {
         if (onGridKeyDown) {
@@ -156,8 +169,9 @@ const ElementCardComponent: React.FC<ElementCardProps> = ({
         ${isFilteredOut ? 'opacity-20 grayscale pointer-events-none scale-95' : 'opacity-100 hover:shadow-lg'}
         ${isSelected ? 'ring-2 ring-sky-400 ring-offset-2 ring-offset-slate-950 scale-105 z-20' : ''}
         ${isInComparison ? 'ring-2 ring-amber-400' : ''}
+        ${isExactMatch && !isSelected && !isInComparison ? 'ring-2 ring-emerald-400 ring-offset-1 ring-offset-slate-950 z-10' : ''}
       `}
-      title={`${element.name} (${element.symbol}) - Z: ${element.atomicNumber} [Enter: abrir, C: comparar]`}
+      title={`${element.name} (${element.symbol}) · Z ${element.atomicNumber} · ${massLabel} u [Enter: abrir, C: comparar]`}
     >
       {/* Top row: Atomic Number and radioactive badge */}
       <div className="flex items-center justify-between leading-none w-full">
@@ -174,7 +188,9 @@ const ElementCardComponent: React.FC<ElementCardProps> = ({
         <span className={`text-base sm:text-lg lg:text-xl font-black tracking-tight leading-none block ${textCategoryClass}`}>
           {element.symbol}
         </span>
-        <span className="text-[9px] sm:text-[10px] text-slate-300 font-medium truncate block max-w-full px-0.5 mt-0.5">
+        <span
+          className={`${nameSizeClass} text-slate-300 font-medium leading-tight whitespace-nowrap overflow-hidden text-ellipsis block max-w-full mt-0.5`}
+        >
           {element.name}
         </span>
       </div>

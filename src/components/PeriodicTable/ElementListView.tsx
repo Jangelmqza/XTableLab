@@ -8,7 +8,8 @@ import {
   getNormalizedTrendValue,
   type HeatmapPalette,
 } from '../../utils/trends';
-import { filterElements } from '../../utils/filters';
+import { filterElements, getSearchMatchScore, normalizeSearchText, EXACT_MATCH_SCORE } from '../../utils/filters';
+import { formatAtomicMass } from '../../utils/format';
 import { Radiation, ArrowUpDown, Scale, Eye } from 'lucide-react';
 
 interface ElementListViewProps {
@@ -61,9 +62,15 @@ export const ElementListView: React.FC<ElementListViewProps> = ({
     });
   }, [elements, selectedCategory, selectedBlock, onlyRadioactive, searchQuery]);
 
-  // Sort elements
+  // Sort elements (con búsqueda activa, la relevancia manda: coincidencia exacta primero)
+  const normalizedQuery = useMemo(() => normalizeSearchText(searchQuery), [searchQuery]);
   const sortedElements = useMemo(() => {
     return [...filteredElements].sort((a, b) => {
+      if (normalizedQuery) {
+        const relevance =
+          getSearchMatchScore(b, normalizedQuery) - getSearchMatchScore(a, normalizedQuery);
+        if (relevance !== 0) return relevance;
+      }
       let comparison = 0;
       if (sortBy === 'atomicNumber') {
         comparison = a.atomicNumber - b.atomicNumber;
@@ -78,7 +85,7 @@ export const ElementListView: React.FC<ElementListViewProps> = ({
       }
       return sortAsc ? comparison : -comparison;
     });
-  }, [filteredElements, sortBy, sortAsc]);
+  }, [filteredElements, sortBy, sortAsc, normalizedQuery]);
 
   const toggleSort = (field: SortField) => {
     if (sortBy === field) {
@@ -148,6 +155,8 @@ export const ElementListView: React.FC<ElementListViewProps> = ({
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
         {sortedElements.map((el) => {
           const isSelected = selectedElement?.atomicNumber === el.atomicNumber;
+          const isExactMatch =
+            normalizedQuery !== '' && getSearchMatchScore(el, normalizedQuery) >= EXACT_MATCH_SCORE;
           const isInComparison = comparisonList.some((c) => c.atomicNumber === el.atomicNumber);
           const cat = CATEGORY_COLORS[el.category] || CATEGORY_COLORS['unknown'];
           const block = BLOCK_COLORS[el.block];
@@ -197,9 +206,16 @@ export const ElementListView: React.FC<ElementListViewProps> = ({
               className={`group relative p-3 rounded-xl border bg-slate-900/90 hover:bg-slate-800/90 transition-all cursor-pointer shadow-md hover:shadow-sky-500/10 hover:border-sky-500/50 focus-visible:ring-2 focus-visible:ring-sky-500 focus:outline-none flex flex-col justify-between ${
                 isSelected
                   ? 'ring-2 ring-sky-400 border-sky-400 bg-sky-950/40'
-                  : 'border-slate-800'
+                  : isExactMatch
+                    ? 'ring-2 ring-emerald-400 border-emerald-400'
+                    : 'border-slate-800'
               }`}
             >
+              {isExactMatch && (
+                <span className="absolute -top-2 left-3 px-1.5 py-0.5 rounded bg-emerald-500 text-slate-950 text-[9px] font-bold uppercase tracking-wide shadow">
+                  Coincidencia exacta
+                </span>
+              )}
               {/* Top row: Z, Symbol, Name & Compare btn */}
               <div className="flex items-start justify-between gap-2">
                 <div className="flex items-center gap-2.5">
@@ -223,7 +239,7 @@ export const ElementListView: React.FC<ElementListViewProps> = ({
                       )}
                     </h3>
                     <p className="text-[11px] text-slate-400 font-mono">
-                      {el.atomicMass.toFixed(3)} u
+                      {formatAtomicMass(el, 3)} u
                     </p>
                   </div>
                 </div>

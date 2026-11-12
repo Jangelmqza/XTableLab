@@ -2,7 +2,7 @@ import React from 'react';
 import type { ElementData, ElementCategory, ElementBlock, TrendProperty } from '../../types/element';
 import type { TableDisplayMode } from './ElementCard';
 import { ElementCard } from './ElementCard';
-import { matchesElementFilter, normalizeSearchText } from '../../utils/filters';
+import { getExactMatchZs, matchesElementFilter, normalizeSearchText } from '../../utils/filters';
 import type { HeatmapPalette } from '../../utils/trends';
 
 interface PeriodicGridProps {
@@ -71,6 +71,80 @@ export const PeriodicGrid: React.FC<PeriodicGridProps> = ({
   }, [elements]);
 
   const normalizedQuery = normalizeSearchText(searchQuery);
+
+  // Coincidencias exactas de la búsqueda (Fe → Hierro, Oro → Oro) para destacarlas
+  const exactMatchZs = React.useMemo(
+    () => getExactMatchZs(elements, searchQuery),
+    [elements, searchQuery]
+  );
+
+  // ── Desplazamiento horizontal: arrastre con ratón + indicadores de borde ──
+  const scrollRef = React.useRef<HTMLDivElement>(null);
+  const dragState = React.useRef({ active: false, startX: 0, startScroll: 0, moved: false });
+  const [canScrollLeft, setCanScrollLeft] = React.useState(false);
+  const [canScrollRight, setCanScrollRight] = React.useState(false);
+
+  const updateScrollIndicators = React.useCallback(() => {
+    const node = scrollRef.current;
+    if (!node) return;
+    setCanScrollLeft(node.scrollLeft > 4);
+    setCanScrollRight(node.scrollLeft + node.clientWidth < node.scrollWidth - 4);
+  }, []);
+
+  React.useEffect(() => {
+    updateScrollIndicators();
+    window.addEventListener('resize', updateScrollIndicators);
+    return () => window.removeEventListener('resize', updateScrollIndicators);
+  }, [updateScrollIndicators]);
+
+  const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    // El táctil usa el scroll nativo; el arrastre manual es solo para ratón/lápiz
+    if (e.pointerType === 'touch' || e.button !== 0) return;
+    const node = scrollRef.current;
+    if (!node || node.scrollWidth <= node.clientWidth) return;
+    dragState.current = { active: true, startX: e.clientX, startScroll: node.scrollLeft, moved: false };
+  };
+
+  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    const state = dragState.current;
+    const node = scrollRef.current;
+    if (!state.active || !node) return;
+    const dx = e.clientX - state.startX;
+    if (!state.moved && Math.abs(dx) > 5) {
+      state.moved = true;
+      node.setPointerCapture?.(e.pointerId);
+    }
+    if (state.moved) {
+      node.scrollLeft = state.startScroll - dx;
+    }
+  };
+
+  const endDrag = (e: React.PointerEvent<HTMLDivElement>) => {
+    const node = scrollRef.current;
+    if (dragState.current.moved && node?.hasPointerCapture?.(e.pointerId)) {
+      node.releasePointerCapture(e.pointerId);
+    }
+    dragState.current.active = false;
+    // El click (si llega) se dispara justo después de pointerup; luego se libera el bloqueo
+    window.setTimeout(() => {
+      dragState.current.moved = false;
+    }, 0);
+  };
+
+  // Evita que soltar tras un arrastre abra la ficha del elemento
+  const handleClickCapture = (e: React.MouseEvent) => {
+    if (dragState.current.moved) {
+      e.stopPropagation();
+      e.preventDefault();
+      dragState.current.moved = false;
+    }
+  };
+
+  const scrollByAmount = (dir: 1 | -1) => {
+    const node = scrollRef.current;
+    if (!node) return;
+    node.scrollBy({ left: dir * node.clientWidth * 0.6, behavior: 'smooth' });
+  };
 
   // Filter check helper
   const isElementFilteredOut = (el: ElementData): boolean => {
@@ -203,6 +277,7 @@ export const PeriodicGrid: React.FC<PeriodicGridProps> = ({
         isFilteredOut={isFilteredOut}
         isSelected={isSelected}
         isInComparison={isInComparison}
+        isExactMatch={exactMatchZs.has(el.atomicNumber)}
         onSelect={onSelectElement}
         onToggleCompare={onToggleCompare}
         onGridKeyDown={handleCellKeyDown}
@@ -228,7 +303,44 @@ export const PeriodicGrid: React.FC<PeriodicGridProps> = ({
         )}
       </div>
 
-      <div className="w-full overflow-x-auto pb-6">
+      <div className="relative">
+        {/* Indicadores de desplazamiento lateral */}
+        {canScrollLeft && (
+          <div className="pointer-events-none absolute inset-y-0 left-0 w-10 z-20 bg-gradient-to-r from-slate-950/90 to-transparent flex items-center">
+            <button
+              type="button"
+              onClick={() => scrollByAmount(-1)}
+              aria-label="Desplazar la tabla a la izquierda"
+              className="pointer-events-auto ml-0.5 w-7 h-7 rounded-full bg-sky-600 text-white font-bold shadow-lg flex items-center justify-center"
+            >
+              ‹
+            </button>
+          </div>
+        )}
+        {canScrollRight && (
+          <div className="pointer-events-none absolute inset-y-0 right-0 w-10 z-20 bg-gradient-to-l from-slate-950/90 to-transparent flex items-center justify-end">
+            <button
+              type="button"
+              onClick={() => scrollByAmount(1)}
+              aria-label="Desplazar la tabla a la derecha"
+              className="pointer-events-auto mr-0.5 w-7 h-7 rounded-full bg-sky-600 text-white font-bold shadow-lg flex items-center justify-center animate-pulse"
+            >
+              ›
+            </button>
+          </div>
+        )}
+
+      <div
+        ref={scrollRef}
+        onScroll={updateScrollIndicators}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={endDrag}
+        onPointerCancel={endDrag}
+        onClickCapture={handleClickCapture}
+        className="w-full overflow-x-auto overscroll-x-contain pb-6 cursor-grab active:cursor-grabbing lg:cursor-auto"
+        style={{ WebkitOverflowScrolling: 'touch' }}
+      >
         <div className="min-w-[1020px] max-w-full mx-auto space-y-4">
           {/* Main Grid: 18 Columns + 1 Period label column */}
           <div className="grid grid-cols-[36px_repeat(18,_minmax(0,_1fr))] gap-1.5 sm:gap-2 items-center">
@@ -406,6 +518,7 @@ export const PeriodicGrid: React.FC<PeriodicGridProps> = ({
         </div>
       </div>
     </div>
-  </div>
+      </div>
+    </div>
   );
 };

@@ -30,6 +30,7 @@ export const BohrModel: React.FC<BohrModelProps> = ({ element, size = 260 }) => 
             cx={center}
             cy={center}
             r={center - 8}
+            className="bohr-bg-circle"
             fill="rgba(15, 23, 42, 0.4)"
             stroke="rgba(51, 65, 85, 0.4)"
             strokeDasharray="4 4"
@@ -131,7 +132,7 @@ export const BohrModel: React.FC<BohrModelProps> = ({ element, size = 260 }) => 
             className="px-2 py-0.5 rounded-full bg-slate-900 border border-slate-800 text-slate-300 font-mono text-[11px] flex items-center gap-1.5 shadow"
           >
             <span className="text-sky-400 font-semibold">{shellNames[idx] || `n=${idx + 1}`}:</span>
-            <span className="font-bold text-white">{count} e⁻</span>
+            <span className="font-bold text-slate-100">{count} e⁻</span>
           </span>
         ))}
       </div>

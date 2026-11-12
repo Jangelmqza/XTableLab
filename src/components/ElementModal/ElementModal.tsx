@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import type { ElementData } from '../../types/element';
 import { CATEGORY_COLORS, PHASE_NAMES } from '../../data/elementsData';
 import { BohrModel } from './BohrModel';
+import { formatElectronConfiguration } from '../../utils/electronConfig';
+import { formatAtomicMass } from '../../utils/format';
 import {
   X,
   Scale,
@@ -87,11 +89,11 @@ export const ElementModal: React.FC<ElementModalProps> = ({
       className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-slate-950/85 backdrop-blur-md overflow-y-auto animate-in fade-in duration-200"
     >
       <div
-        className="bg-slate-900 border border-slate-700/80 rounded-2xl w-full max-w-4xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh] my-auto"
+        className="bg-slate-900 border border-slate-700/80 rounded-2xl w-full max-w-4xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh] max-h-[92dvh] my-auto"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header Bar */}
-        <div className="p-4 sm:p-6 bg-slate-950/80 border-b border-slate-800 flex items-center justify-between gap-4">
+        <div className="shrink-0 p-3 sm:p-6 bg-slate-950/80 border-b border-slate-800 flex items-center justify-between gap-3 sm:gap-4">
           <div className="flex items-center gap-3 sm:gap-4">
             <div
               className={`w-14 h-16 sm:w-16 sm:h-20 rounded-xl border flex flex-col items-center justify-center shadow-lg ${cat.bg} ${cat.border}`}
@@ -103,7 +105,7 @@ export const ElementModal: React.FC<ElementModalProps> = ({
                 {element.symbol}
               </span>
               <span className="text-[9px] font-mono text-slate-400">
-                {element.atomicMass.toFixed(2)}
+                {formatAtomicMass(element, 2)}
               </span>
             </div>
 
@@ -125,12 +127,7 @@ export const ElementModal: React.FC<ElementModalProps> = ({
 
               <div className="flex flex-wrap items-center gap-2 mt-1.5 text-xs">
                 <span
-                  className="px-2.5 py-0.5 rounded-full font-medium border"
-                  style={{
-                    backgroundColor: cat.glow.replace('0.4', '0.15'),
-                    borderColor: cat.border,
-                    color: '#e2e8f0',
-                  }}
+                  className={`px-2.5 py-0.5 rounded-full font-semibold border ${cat.bg} ${cat.border} ${cat.text}`}
                 >
                   {cat.name}
                 </span>
@@ -140,11 +137,11 @@ export const ElementModal: React.FC<ElementModalProps> = ({
                 </span>
 
                 <span className="text-slate-400">
-                  Periodo <strong className="text-white">{element.period}</strong>
+                  Periodo <strong className="text-slate-100">{element.period}</strong>
                   {element.group ? (
                     <>
                       {' '}
-                      • Grupo <strong className="text-white">{element.group}</strong>
+                      • Grupo <strong className="text-slate-100">{element.group}</strong>
                     </>
                   ) : (
                     <> • Serie f</>
@@ -203,33 +200,35 @@ export const ElementModal: React.FC<ElementModalProps> = ({
         </div>
 
         {/* Tab Switcher: Visión rápida vs A fondo universitario */}
-        <div className="flex border-b border-slate-800 bg-slate-950/40 px-4 sm:px-6">
+        <div className="shrink-0 flex border-b border-slate-800 bg-slate-950/40 px-2 sm:px-6">
           <button
             onClick={() => setActiveTab('quick')}
-            className={`py-3 px-4 text-xs sm:text-sm font-semibold border-b-2 flex items-center gap-2 transition-all ${
+            className={`py-2.5 sm:py-3 px-3 sm:px-4 text-xs sm:text-sm font-semibold border-b-2 flex items-center gap-2 transition-all ${
               activeTab === 'quick'
                 ? 'border-sky-500 text-sky-400 bg-sky-950/20'
                 : 'border-transparent text-slate-400 hover:text-slate-200'
             }`}
           >
             <BookOpen className="w-4 h-4" />
-            <span>Visión Rápida & General</span>
+            <span className="sm:hidden">Resumen</span>
+            <span className="hidden sm:inline">Visión Rápida &amp; General</span>
           </button>
           <button
             onClick={() => setActiveTab('deep')}
-            className={`py-3 px-4 text-xs sm:text-sm font-semibold border-b-2 flex items-center gap-2 transition-all ${
+            className={`py-2.5 sm:py-3 px-3 sm:px-4 text-xs sm:text-sm font-semibold border-b-2 flex items-center gap-2 transition-all ${
               activeTab === 'deep'
                 ? 'border-indigo-500 text-indigo-400 bg-indigo-950/20'
                 : 'border-transparent text-slate-400 hover:text-slate-200'
             }`}
           >
             <GraduationCap className="w-4 h-4" />
-            <span>A Fondo (Nivel Universitario)</span>
+            <span className="sm:hidden">A Fondo</span>
+            <span className="hidden sm:inline">A Fondo (Nivel Universitario)</span>
           </button>
         </div>
 
         {/* Scrollable Body Content */}
-        <div className="p-4 sm:p-6 overflow-y-auto space-y-6">
+        <div className="flex-1 min-h-0 p-4 sm:p-6 overflow-y-auto overscroll-contain space-y-6">
           {/* Main Grid: Left Bohr model & Right summary / properties */}
           <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
             {/* Left Bohr Diagram */}
@@ -293,7 +292,7 @@ export const ElementModal: React.FC<ElementModalProps> = ({
                     <div className="flex items-center justify-between">
                       <span className="text-slate-400">Configuración electrónica condensada:</span>
                       <span className="font-mono font-bold text-sky-400 bg-slate-900 px-2 py-0.5 rounded border border-slate-800">
-                        {element.electronConfiguration}
+                        {formatElectronConfiguration(element.electronConfiguration)}
                       </span>
                     </div>
                     <div className="flex items-center justify-between">
@@ -322,7 +321,7 @@ export const ElementModal: React.FC<ElementModalProps> = ({
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
               <div className="p-3 bg-slate-950/60 border border-slate-800/80 rounded-xl">
                 <span className="text-slate-500 block">Electronegatividad</span>
-                <span className="font-mono text-base font-bold text-white">
+                <span className="font-mono text-base font-bold text-slate-100">
                   {element.electronegativity !== null ? element.electronegativity.toFixed(2) : 'N/D'}
                 </span>
                 <span className="text-[10px] text-slate-500 block">Escala de Pauling</span>
@@ -330,7 +329,7 @@ export const ElementModal: React.FC<ElementModalProps> = ({
 
               <div className="p-3 bg-slate-950/60 border border-slate-800/80 rounded-xl">
                 <span className="text-slate-500 block">Radio Atómico</span>
-                <span className="font-mono text-base font-bold text-white">
+                <span className="font-mono text-base font-bold text-slate-100">
                   {element.atomicRadius !== null ? `${element.atomicRadius} pm` : 'N/D'}
                 </span>
                 <span className="text-[10px] text-slate-500 block">Picómetros</span>
@@ -338,7 +337,7 @@ export const ElementModal: React.FC<ElementModalProps> = ({
 
               <div className="p-3 bg-slate-950/60 border border-slate-800/80 rounded-xl">
                 <span className="text-slate-500 block">1ª Energía de Ionización</span>
-                <span className="font-mono text-base font-bold text-white">
+                <span className="font-mono text-base font-bold text-slate-100">
                   {element.ionizationEnergy !== null
                     ? `${element.ionizationEnergy.toFixed(2)} eV`
                     : 'N/D'}
@@ -352,7 +351,7 @@ export const ElementModal: React.FC<ElementModalProps> = ({
 
               <div className="p-3 bg-slate-950/60 border border-slate-800/80 rounded-xl">
                 <span className="text-slate-500 block">Afinidad Electrónica</span>
-                <span className="font-mono text-base font-bold text-white">
+                <span className="font-mono text-base font-bold text-slate-100">
                   {element.electronAffinity !== null
                     ? `${element.electronAffinity.toFixed(2)} eV`
                     : 'N/D'}
@@ -362,7 +361,7 @@ export const ElementModal: React.FC<ElementModalProps> = ({
 
               <div className="p-3 bg-slate-950/60 border border-slate-800/80 rounded-xl">
                 <span className="text-slate-500 block">Densidad (298 K)</span>
-                <span className="font-mono text-base font-bold text-white">
+                <span className="font-mono text-base font-bold text-slate-100">
                   {element.density !== null
                     ? element.density < 0.01
                       ? `${(element.density * 1000).toFixed(2)} mg/cm³`
@@ -374,7 +373,7 @@ export const ElementModal: React.FC<ElementModalProps> = ({
 
               <div className="p-3 bg-slate-950/60 border border-slate-800/80 rounded-xl">
                 <span className="text-slate-500 block">Punto de Fusión</span>
-                <span className="font-mono text-base font-bold text-white">
+                <span className="font-mono text-base font-bold text-slate-100">
                   {element.meltingPoint !== null ? `${element.meltingPoint} K` : 'N/D'}
                 </span>
                 <span className="text-[10px] text-slate-500 block">
@@ -386,7 +385,7 @@ export const ElementModal: React.FC<ElementModalProps> = ({
 
               <div className="p-3 bg-slate-950/60 border border-slate-800/80 rounded-xl">
                 <span className="text-slate-500 block">Punto de Ebullición</span>
-                <span className="font-mono text-base font-bold text-white">
+                <span className="font-mono text-base font-bold text-slate-100">
                   {element.boilingPoint !== null ? `${element.boilingPoint} K` : 'N/D'}
                 </span>
                 <span className="text-[10px] text-slate-500 block">
@@ -398,7 +397,7 @@ export const ElementModal: React.FC<ElementModalProps> = ({
 
               <div className="p-3 bg-slate-950/60 border border-slate-800/80 rounded-xl">
                 <span className="text-slate-500 block">Estado Físico (298 K)</span>
-                <span className="font-mono text-base font-bold text-white">
+                <span className="font-mono text-base font-bold text-slate-100">
                   {PHASE_NAMES[element.phase] || element.phase}
                 </span>
                 <span className="text-[10px] text-slate-500 block">A 1 atm y 25 °C</span>
@@ -407,12 +406,12 @@ export const ElementModal: React.FC<ElementModalProps> = ({
           </div>
         </div>
 
-        {/* Footer Actions */}
-        <div className="p-4 sm:p-5 bg-slate-950/90 border-t border-slate-800 flex flex-wrap items-center justify-between gap-3">
-          <div className="flex flex-wrap items-center gap-2">
+        {/* Footer Actions — en móvil una sola fila deslizable para no robar altura al contenido */}
+        <div className="shrink-0 p-3 sm:p-5 bg-slate-950/90 border-t border-slate-800 flex flex-nowrap sm:flex-wrap items-center justify-between gap-2 sm:gap-3 overflow-x-auto no-scrollbar">
+          <div className="flex flex-nowrap sm:flex-wrap items-center gap-2">
             <button
               onClick={() => onAddToCompare(element)}
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all border ${
+              className={`shrink-0 whitespace-nowrap flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all border ${
                 isInComparison
                   ? 'bg-amber-500/20 text-amber-300 border-amber-500/50'
                   : 'bg-slate-800 text-slate-200 border-slate-700 hover:bg-slate-700'
@@ -424,7 +423,7 @@ export const ElementModal: React.FC<ElementModalProps> = ({
 
             <button
               onClick={() => onGoToSimulator('atom', element)}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-sky-950/60 text-sky-300 border border-sky-800/60 hover:bg-sky-900/60 transition-colors"
+              className="shrink-0 whitespace-nowrap flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-sky-950/60 text-sky-300 border border-sky-800/60 hover:bg-sky-900/60 transition-colors"
             >
               <Atom className="w-4 h-4 text-sky-400" />
               <span>Simular Átomo</span>
@@ -432,7 +431,7 @@ export const ElementModal: React.FC<ElementModalProps> = ({
 
             <button
               onClick={() => onGoToSimulator('electron', element)}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-indigo-950/60 text-indigo-300 border border-indigo-800/60 hover:bg-indigo-900/60 transition-colors"
+              className="shrink-0 whitespace-nowrap flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-indigo-950/60 text-indigo-300 border border-indigo-800/60 hover:bg-indigo-900/60 transition-colors"
             >
               <Zap className="w-4 h-4 text-indigo-400" />
               <span>Simular Aufbau (Moeller)</span>
@@ -440,7 +439,7 @@ export const ElementModal: React.FC<ElementModalProps> = ({
 
             <button
               onClick={() => onGoToSimulator('bond', element)}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-rose-950/60 text-rose-300 border border-rose-800/60 hover:bg-rose-900/60 transition-colors"
+              className="shrink-0 whitespace-nowrap flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-rose-950/60 text-rose-300 border border-rose-800/60 hover:bg-rose-900/60 transition-colors"
             >
               <Flame className="w-4 h-4 text-rose-400" />
               <span>Simular Enlace</span>
@@ -448,7 +447,7 @@ export const ElementModal: React.FC<ElementModalProps> = ({
 
             <button
               onClick={() => onGoToSimulator('vsepr', element)}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-emerald-950/60 text-emerald-300 border border-emerald-800/60 hover:bg-emerald-900/60 transition-colors"
+              className="shrink-0 whitespace-nowrap flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-emerald-950/60 text-emerald-300 border border-emerald-800/60 hover:bg-emerald-900/60 transition-colors"
             >
               <Box className="w-4 h-4 text-emerald-400" />
               <span>Molécula 3D</span>
@@ -457,7 +456,7 @@ export const ElementModal: React.FC<ElementModalProps> = ({
 
           <button
             onClick={onClose}
-            className="px-4 py-2 rounded-xl text-xs font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white transition-colors"
+            className="shrink-0 whitespace-nowrap px-4 py-2 rounded-xl text-xs font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white transition-colors"
           >
             Cerrar
           </button>

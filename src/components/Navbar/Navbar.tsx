@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import {
   Table2,
   Scale,
@@ -10,6 +11,8 @@ import {
   Download,
   Sun,
   Moon,
+  Menu,
+  X,
 } from 'lucide-react';
 import { APP_VERSION } from '../../version';
 
@@ -37,33 +40,60 @@ export const Navbar: React.FC<NavbarProps> = ({
   theme,
   onToggleTheme,
 }) => {
-  const tabs = [
-    { id: 'table', label: 'Tabla Periódica', icon: Table2 },
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+  // Cerrar el menú móvil con Escape
+  useEffect(() => {
+    if (!isMenuOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsMenuOpen(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [isMenuOpen]);
+
+  const tabs: {
+    id: AppTab;
+    label: string;
+    shortLabel: string;
+    icon: typeof Table2;
+    badge?: number;
+  }[] = [
+    { id: 'table', label: 'Tabla Periódica', shortLabel: 'Tabla', icon: Table2 },
     {
       id: 'compare',
       label: 'Comparador',
+      shortLabel: 'Comparador',
       icon: Scale,
       badge: comparisonCount > 0 ? comparisonCount : undefined,
     },
-    { id: 'atom', label: 'Simulador de Átomos', icon: Atom },
-    { id: 'config', label: 'Configuración Electrónica', icon: Zap },
-    { id: 'bonds', label: 'Enlaces Químicos', icon: Flame },
-    { id: 'vsepr', label: 'Moléculas 3D', icon: Box },
-    { id: 'quiz', label: 'Quizzes', icon: GraduationCap },
+    { id: 'atom', label: 'Simulador de Átomos', shortLabel: 'Átomos', icon: Atom },
+    { id: 'config', label: 'Configuración Electrónica', shortLabel: 'Config. e⁻', icon: Zap },
+    { id: 'bonds', label: 'Enlaces Químicos', shortLabel: 'Enlaces', icon: Flame },
+    { id: 'vsepr', label: 'Moléculas 3D', shortLabel: 'Moléculas 3D', icon: Box },
+    { id: 'quiz', label: 'Quizzes', shortLabel: 'Quizzes', icon: GraduationCap },
   ];
+
+  const activeTabInfo = tabs.find((t) => t.id === activeTab) ?? tabs[0];
+  const ActiveIcon = activeTabInfo.icon;
+
+  const handleSelectTab = (id: AppTab) => {
+    onTabChange(id);
+    setIsMenuOpen(false);
+  };
 
   return (
     <header className="sticky top-0 z-40 bg-slate-950/90 border-b border-slate-800/80 backdrop-blur-xl transition-all">
-      <div className="max-w-7xl mx-auto px-3 sm:px-6 h-16 flex items-center justify-between gap-3">
+      <div className="max-w-7xl 2xl:max-w-[1760px] mx-auto px-3 sm:px-6 h-16 flex items-center justify-between gap-3">
         {/* Logo and Brand */}
         <div
           role="button"
           tabIndex={0}
-          onClick={() => onTabChange('table')}
+          onClick={() => handleSelectTab('table')}
           onKeyDown={(e) => {
             if (e.key === 'Enter' || e.key === ' ') {
               e.preventDefault();
-              onTabChange('table');
+              handleSelectTab('table');
             }
           }}
           aria-label="Ir a la Tabla Periódica principal"
@@ -85,25 +115,30 @@ export const Navbar: React.FC<NavbarProps> = ({
           </div>
         </div>
 
-        {/* Navigation Tabs */}
-        <nav aria-label="Módulos principales de XTableLab" className="flex items-center gap-1 overflow-x-auto no-scrollbar py-1">
+        {/* Navigation Tabs (escritorio ≥ xl: caben los 7 módulos) */}
+        <nav
+          aria-label="Módulos principales de XTableLab"
+          className="hidden xl:flex items-center gap-0.5 2xl:gap-1 min-w-0"
+        >
           {tabs.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
             return (
               <button
                 key={tab.id}
-                onClick={() => onTabChange(tab.id as AppTab)}
+                onClick={() => handleSelectTab(tab.id)}
                 aria-current={isActive ? 'page' : undefined}
                 aria-label={tab.label}
-                className={`relative flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all select-none ${
+                title={tab.label}
+                className={`relative flex items-center gap-1.5 px-2.5 2xl:px-3 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all select-none ${
                   isActive
                     ? 'bg-sky-600 text-white shadow-lg shadow-sky-600/30'
                     : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
                 }`}
               >
-                <Icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-slate-400'}`} />
-                <span>{tab.label}</span>
+                <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-white' : 'text-slate-400'}`} />
+                <span className="2xl:hidden">{tab.shortLabel}</span>
+                <span className="hidden 2xl:inline">{tab.label}</span>
                 {tab.badge !== undefined && (
                   <span className="ml-1 w-4 h-4 rounded-full bg-amber-400 text-slate-950 font-bold text-[10px] flex items-center justify-center shadow">
                     {tab.badge}
@@ -113,6 +148,71 @@ export const Navbar: React.FC<NavbarProps> = ({
             );
           })}
         </nav>
+
+        {/* Menú colapsable (móvil / tablet / escritorio estrecho) */}
+        <div className="xl:hidden relative flex-1 flex justify-end min-w-0">
+          <button
+            type="button"
+            onClick={() => setIsMenuOpen((v) => !v)}
+            aria-expanded={isMenuOpen}
+            aria-controls="mobile-module-menu"
+            aria-label={isMenuOpen ? 'Cerrar menú de módulos' : 'Abrir menú de módulos'}
+            className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold border border-slate-800 bg-slate-900 text-slate-200 hover:bg-slate-800 transition-colors min-w-0"
+          >
+            <ActiveIcon className="w-4 h-4 text-sky-400 shrink-0" />
+            <span className="truncate">{activeTabInfo.label}</span>
+            {comparisonCount > 0 && (
+              <span className="w-4 h-4 rounded-full bg-amber-400 text-slate-950 font-bold text-[10px] flex items-center justify-center shrink-0">
+                {comparisonCount}
+              </span>
+            )}
+            {isMenuOpen ? (
+              <X className="w-4 h-4 shrink-0" />
+            ) : (
+              <Menu className="w-4 h-4 shrink-0" />
+            )}
+          </button>
+
+          {isMenuOpen && (
+            <>
+              <div
+                className="fixed inset-0 z-40"
+                aria-hidden="true"
+                onClick={() => setIsMenuOpen(false)}
+              />
+              <nav
+                id="mobile-module-menu"
+                aria-label="Módulos principales de XTableLab"
+                className="absolute right-0 top-full mt-2 z-50 w-64 max-w-[calc(100vw-1.5rem)] p-1.5 rounded-2xl border border-slate-800 bg-slate-900 shadow-2xl"
+              >
+                {tabs.map((tab) => {
+                  const Icon = tab.icon;
+                  const isActive = activeTab === tab.id;
+                  return (
+                    <button
+                      key={tab.id}
+                      onClick={() => handleSelectTab(tab.id)}
+                      aria-current={isActive ? 'page' : undefined}
+                      className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-semibold text-left transition-colors ${
+                        isActive
+                          ? 'bg-sky-600 text-white'
+                          : 'text-slate-300 hover:text-white hover:bg-slate-800'
+                      }`}
+                    >
+                      <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-white' : 'text-sky-400'}`} />
+                      <span className="flex-1">{tab.label}</span>
+                      {tab.badge !== undefined && (
+                        <span className="w-5 h-5 rounded-full bg-amber-400 text-slate-950 font-bold text-[10px] flex items-center justify-center">
+                          {tab.badge}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </nav>
+            </>
+          )}
+        </div>
 
         {/* Actions Area */}
         <div className="flex items-center gap-2 shrink-0">

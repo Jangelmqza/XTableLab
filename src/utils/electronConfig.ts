@@ -120,6 +120,10 @@ export const QUANTUM_ANOMALIES: Record<number, QuantumAnomalyInfo> = {
     overrides: { '5f': 7, '6d': 1 },
     note: 'Curio (Z=96): Configuración real [Rn] 5f⁷ 6d¹ 7s², estabilizada por la subcapa 5f exactamente semi-llena.',
   },
+  103: {
+    overrides: { '6d': 0, '7p': 1 },
+    note: 'Laurencio (Z=103): Confirmación experimental (Nature 2015 / IUPAC) demuestra configuración basal [Rn] 5f¹⁴ 7s² 7p¹ (en vez del clásico 6d¹) debido a la estabilización relativista del orbital 7p_1/2.',
+  },
 };
 
 export function getAnomalyNote(z: number): string | null {
@@ -198,8 +202,13 @@ export function calculateOrbitalBoxes(
   for (const sub of AUFBAU_SEQUENCE) {
     const count = countsMap.get(sub.name);
     if (count === undefined) continue;
-    // Mostrar orbitales con electrones, o el orbital s vacío en caso de anomalía como Pd (5s⁰)
-    if (count > 0 || (mode === 'real' && QUANTUM_ANOMALIES[numElectrons]?.overrides[sub.name] === 0)) {
+    // Mostrar orbitales con electrones, o la subcapa s vacía en caso de anomalía explícita como Pd (5s⁰)
+    const isExplicitZeroS =
+      mode === 'real' &&
+      sub.l === 0 &&
+      QUANTUM_ANOMALIES[numElectrons]?.overrides[sub.name] === 0;
+
+    if (count > 0 || isExplicitZeroS) {
       distribution.push(buildBoxesForSublevel(sub, count));
     }
   }
@@ -222,4 +231,94 @@ export function formatConfigurationString(
     .filter((item) => item.electronsCount > 0)
     .map((item) => `${item.sublevel.name}${toSuperscript(item.electronsCount)}`)
     .join(' ');
+}
+
+const NOBLE_GAS_CORES: { z: number; symbol: string; maxSublevelIndex: number }[] = [
+  { z: 86, symbol: 'Rn', maxSublevelIndex: 14 }, // up to 6p (1s..6p)
+  { z: 54, symbol: 'Xe', maxSublevelIndex: 10 }, // up to 5p
+  { z: 36, symbol: 'Kr', maxSublevelIndex: 7 },  // up to 4p
+  { z: 18, symbol: 'Ar', maxSublevelIndex: 4 },  // up to 3p
+  { z: 10, symbol: 'Ne', maxSublevelIndex: 2 },  // up to 2p
+  { z: 2,  symbol: 'He', maxSublevelIndex: 0 },  // 1s
+];
+
+/**
+ * Genera la configuración condensada con gas noble (ej. [Ar] 3d⁵ 4s¹ o [Ar] 4s¹ 3d⁵).
+ */
+export function getCondensedConfigurationString(
+  numElectrons: number,
+  mode: 'real' | 'aufbau' = 'real',
+  order: 'filling' | 'shell' = 'shell'
+): string {
+  if (numElectrons <= 2) {
+    return formatConfigurationString(calculateOrbitalBoxes(numElectrons, mode), order);
+  }
+
+  const core = NOBLE_GAS_CORES.find((c) => numElectrons > c.z);
+  if (!core) {
+    return formatConfigurationString(calculateOrbitalBoxes(numElectrons, mode), order);
+  }
+
+  const allItems = calculateOrbitalBoxes(numElectrons, mode);
+  // Los subniveles del core son los primeros maxSublevelIndex + 1 de AUFBAU_SEQUENCE
+  const coreSublevelNames = new Set(
+    AUFBAU_SEQUENCE.slice(0, core.maxSublevelIndex + 1).map((s) => s.name)
+  );
+
+  const valenceItems = allItems.filter(
+    (item) => !coreSublevelNames.has(item.sublevel.name) && item.electronsCount > 0
+  );
+
+  const valenceStr = formatConfigurationString(valenceItems, order);
+  return valenceStr ? `[${core.symbol}] ${valenceStr}` : `[${core.symbol}]`;
+}
+
+/**
+ * Genera la configuración completa no abreviada para Z (ej. 1s² 2s² 2p⁶ 3s² 3p⁶ 3d⁵ 4s¹).
+ */
+export function getFullConfigurationString(
+  numElectrons: number,
+  mode: 'real' | 'aufbau' = 'real',
+  order: 'filling' | 'shell' = 'shell'
+): string {
+  return formatConfigurationString(calculateOrbitalBoxes(numElectrons, mode), order);
+}
+
+const SUBSHELL_L: Record<string, number> = { s: 0, p: 1, d: 2, f: 3, g: 4 };
+
+/**
+ * Normaliza una configuración electrónica almacenada en texto plano
+ * (ej. "[Ar]4s2 3d6" o "[Xe]6s2 4f14 5d10 6p4") a la notación espectroscópica
+ * ordenada por nivel n y luego por subnivel l, con superíndices:
+ * "[Ar] 3d⁶ 4s²" / "[Xe] 4f¹⁴ 5d¹⁰ 6s² 6p⁴".
+ * Así todas las vistas muestran exactamente el mismo orden.
+ */
+export function formatElectronConfiguration(raw: string): string {
+  if (!raw) return raw;
+  const coreMatch = raw.match(/^\s*\[([A-Z][a-z]?)\]/);
+  const core = coreMatch ? `[${coreMatch[1]}]` : '';
+  const rest = coreMatch ? raw.slice(coreMatch[0].length) : raw;
+
+  const tokens: { n: number; l: number; label: string; count: number }[] = [];
+  const re = /(\d+)([spdfg])(\d+|[⁰¹²³⁴⁵⁶⁷⁸⁹]+)?/g;
+  const superToDigit: Record<string, string> = {
+    '⁰': '0', '¹': '1', '²': '2', '³': '3', '⁴': '4',
+    '⁵': '5', '⁶': '6', '⁷': '7', '⁸': '8', '⁹': '9',
+  };
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(rest)) !== null) {
+    const n = parseInt(m[1], 10);
+    const letter = m[2];
+    const countStr = (m[3] ?? '1')
+      .split('')
+      .map((c) => superToDigit[c] ?? c)
+      .join('');
+    tokens.push({ n, l: SUBSHELL_L[letter], label: `${n}${letter}`, count: parseInt(countStr, 10) });
+  }
+
+  if (tokens.length === 0) return raw.trim();
+
+  tokens.sort((a, b) => a.n - b.n || a.l - b.l);
+  const valence = tokens.map((t) => `${t.label}${toSuperscript(t.count)}`).join(' ');
+  return core ? `${core} ${valence}` : valence;
 }

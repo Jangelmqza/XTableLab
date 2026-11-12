@@ -1,10 +1,19 @@
 import { describe, it, expect } from 'vitest';
 import { ELEMENTS_DATA } from '../../data/elementsData';
-import { normalizeSearchText, matchesElementFilter, filterElements } from '../filters';
+import {
+  normalizeSearchText,
+  matchesElementFilter,
+  filterElements,
+  getExactMatchZs,
+  getSearchMatchScore,
+  EXACT_MATCH_SCORE,
+} from '../filters';
+import { formatAtomicMass } from '../format';
 import { classifyBond, calculateIonicPercentage, isMetallicElement } from '../bonds';
 import {
   calculateOrbitalBoxes,
   formatConfigurationString,
+  formatElectronConfiguration,
   getAnomalyNote,
 } from '../electronConfig';
 import {
@@ -77,6 +86,40 @@ describe('filters.ts — Búsqueda y filtrado unificado', () => {
     });
     expect(radioactiveOnly.every((e) => e.radioactive)).toBe(true);
   });
+
+  it('prioriza la coincidencia exacta de símbolo o nombre (Fe → Hierro, Oro → Oro)', () => {
+    const base = { selectedCategory: 'all' as const, selectedBlock: 'all' as const, onlyRadioactive: false };
+    const fe = filterElements(ELEMENTS_DATA, { ...base, searchQuery: 'Fe' });
+    expect(fe[0].symbol).toBe('Fe');
+
+    const oro = filterElements(ELEMENTS_DATA, { ...base, searchQuery: 'Oro' });
+    expect(oro[0].symbol).toBe('Au');
+    expect(getExactMatchZs(ELEMENTS_DATA, 'Oro')).toEqual(new Set([79]));
+    expect(getExactMatchZs(ELEMENTS_DATA, 'Fe')).toEqual(new Set([26]));
+    expect(getSearchMatchScore(getElementByZ(5), 'oro')).toBeLessThan(EXACT_MATCH_SCORE); // Boro
+  });
+});
+
+describe('format.ts — Masa atómica con convención IUPAC', () => {
+  it('distingue Polonio [209] de Bismuto 208.98', () => {
+    expect(formatAtomicMass(getElementByZ(83))).toBe('208.98');
+    expect(formatAtomicMass(getElementByZ(84))).toBe('[209]');
+    expect(formatAtomicMass(getElementByZ(26))).toBe('55.84');
+    // Uranio sí tiene peso atómico estándar
+    expect(formatAtomicMass(getElementByZ(92))).not.toMatch(/^\[/);
+  });
+
+  it('el Hierro no se atribuye a Georg Brandt (descubridor del cobalto)', () => {
+    expect(getElementByZ(26).discoveredBy).not.toContain('Brandt');
+  });
+});
+
+describe('electronConfig.ts — Formato unificado de configuración almacenada', () => {
+  it('ordena por nivel n y añade superíndices', () => {
+    expect(formatElectronConfiguration('[Ar]4s2 3d6')).toBe('[Ar] 3d⁶ 4s²');
+    expect(formatElectronConfiguration('[Xe]6s2 4f14 5d10 6p4')).toBe('[Xe] 4f¹⁴ 5d¹⁰ 6s² 6p⁴');
+    expect(formatElectronConfiguration('1s1')).toBe('1s¹');
+  });
 });
 
 describe('bonds.ts — Clasificación unificada de enlaces químicos (D5)', () => {
@@ -137,7 +180,15 @@ describe('electronConfig.ts — Configuración electrónica Real vs. Ideal (D1, 
   it('devuelve nota explicativa para elementos con anomalía cuántica', () => {
     expect(getAnomalyNote(24)).toBeTruthy();
     expect(getAnomalyNote(29)).toBeTruthy();
+    expect(getAnomalyNote(103)).toBeTruthy();
     expect(getAnomalyNote(6)).toBeNull();
+  });
+
+  it('reconoce la configuración relativista de Laurencio (Z=103) en modo experimental', () => {
+    const lrReal = calculateOrbitalBoxes(103, 'real');
+    const lrIdeal = calculateOrbitalBoxes(103, 'aufbau');
+    expect(formatConfigurationString(lrReal, 'filling')).toContain('7p¹');
+    expect(formatConfigurationString(lrIdeal, 'filling')).toContain('6d¹');
   });
 });
 
@@ -167,12 +218,22 @@ describe('nuclear.ts — Isótopos más abundantes, estabilidad nuclear y capas 
   it('calcula la distribución por capas para átomos neutros e iones', () => {
     const ca = getElementByZ(20);
     const fe = getElementByZ(26);
+    const cu = getElementByZ(29);
     // Calcio neutro (Z=20): [2, 8, 8, 2]
     expect(calculateElectronShells(20, ca)).toEqual([2, 8, 8, 2]);
     // Catión Ca2+ (18 e-): [2, 8, 8]
     expect(calculateElectronShells(18, ca)).toEqual([2, 8, 8]);
     // Hierro neutro (Z=26): [2, 8, 14, 2]
     expect(calculateElectronShells(26, fe)).toEqual([2, 8, 14, 2]);
+    // Cationes de metales de transición pierden 4s antes que 3d:
+    // Fe2+ (24 e-): pierde ambos 4s -> [2, 8, 14]
+    expect(calculateElectronShells(24, fe)).toEqual([2, 8, 14]);
+    // Fe3+ (23 e-): pierde 4s2 y un 3d -> [2, 8, 13]
+    expect(calculateElectronShells(23, fe)).toEqual([2, 8, 13]);
+    // Cu+ (28 e-): pierde 4s1 -> [2, 8, 18]
+    expect(calculateElectronShells(28, cu)).toEqual([2, 8, 18]);
+    // Cu2+ (27 e-): pierde 4s1 y un 3d -> [2, 8, 17]
+    expect(calculateElectronShells(27, cu)).toEqual([2, 8, 17]);
   });
 });
 
