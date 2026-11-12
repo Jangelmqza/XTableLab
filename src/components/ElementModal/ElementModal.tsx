@@ -80,13 +80,70 @@ export const ElementModal: React.FC<ElementModalProps> = ({
     }
   };
 
+  const actionButtons = (
+    <>
+      <div className="flex flex-wrap items-center gap-2">
+        <button
+          onClick={() => onAddToCompare(element)}
+          className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all border ${
+            isInComparison
+              ? 'bg-amber-500/20 text-amber-300 border-amber-500/50'
+              : 'bg-slate-800 text-slate-200 border-slate-700 hover:bg-slate-700'
+          }`}
+        >
+          <Scale className="w-4 h-4 text-amber-400 shrink-0" />
+          <span>{isInComparison ? 'En comparación (Quitar)' : 'Añadir a Comparador'}</span>
+        </button>
+
+        <button
+          onClick={() => onGoToSimulator('atom', element)}
+          className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-sky-950/60 text-sky-300 border border-sky-800/60 hover:bg-sky-900/60 transition-colors"
+        >
+          <Atom className="w-4 h-4 text-sky-400 shrink-0" />
+          <span>Simular Átomo</span>
+        </button>
+
+        <button
+          onClick={() => onGoToSimulator('electron', element)}
+          className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-indigo-950/60 text-indigo-300 border border-indigo-800/60 hover:bg-indigo-900/60 transition-colors"
+        >
+          <Zap className="w-4 h-4 text-indigo-400 shrink-0" />
+          <span>Simular Aufbau (Moeller)</span>
+        </button>
+
+        <button
+          onClick={() => onGoToSimulator('bond', element)}
+          className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-rose-950/60 text-rose-300 border border-rose-800/60 hover:bg-rose-900/60 transition-colors"
+        >
+          <Flame className="w-4 h-4 text-rose-400 shrink-0" />
+          <span>Simular Enlace</span>
+        </button>
+
+        <button
+          onClick={() => onGoToSimulator('vsepr', element)}
+          className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-emerald-950/60 text-emerald-300 border border-emerald-800/60 hover:bg-emerald-900/60 transition-colors"
+        >
+          <Box className="w-4 h-4 text-emerald-400 shrink-0" />
+          <span>Molécula 3D</span>
+        </button>
+      </div>
+
+      <button
+        onClick={onClose}
+        className="px-4 py-2 rounded-xl text-xs font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white transition-colors"
+      >
+        Cerrar
+      </button>
+    </>
+  );
+
   return (
     <div
       onClick={onClose}
       role="dialog"
       aria-modal="true"
       aria-labelledby="element-modal-title"
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-slate-950/85 backdrop-blur-md overflow-y-auto animate-in fade-in duration-200"
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-slate-950/85 backdrop-blur-md overflow-y-auto"
     >
       <div
         className="bg-slate-900 border border-slate-700/80 rounded-2xl w-full max-w-4xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh] max-h-[92dvh] my-auto"
@@ -404,62 +461,16 @@ export const ElementModal: React.FC<ElementModalProps> = ({
               </div>
             </div>
           </div>
+
+          {/* En móvil las acciones van al final del scroll con flex-wrap para no tapar el texto ni desbordarse */}
+          <div className="sm:hidden pt-4 border-t border-slate-800 flex flex-wrap items-center justify-between gap-2">
+            {actionButtons}
+          </div>
         </div>
 
-        {/* Footer Actions — en móvil una sola fila deslizable para no robar altura al contenido */}
-        <div className="shrink-0 p-3 sm:p-5 bg-slate-950/90 border-t border-slate-800 flex flex-nowrap sm:flex-wrap items-center justify-between gap-2 sm:gap-3 overflow-x-auto no-scrollbar">
-          <div className="flex flex-nowrap sm:flex-wrap items-center gap-2">
-            <button
-              onClick={() => onAddToCompare(element)}
-              className={`shrink-0 whitespace-nowrap flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all border ${
-                isInComparison
-                  ? 'bg-amber-500/20 text-amber-300 border-amber-500/50'
-                  : 'bg-slate-800 text-slate-200 border-slate-700 hover:bg-slate-700'
-              }`}
-            >
-              <Scale className="w-4 h-4 text-amber-400" />
-              <span>{isInComparison ? 'En comparación (Quitar)' : 'Añadir a Comparador'}</span>
-            </button>
-
-            <button
-              onClick={() => onGoToSimulator('atom', element)}
-              className="shrink-0 whitespace-nowrap flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-sky-950/60 text-sky-300 border border-sky-800/60 hover:bg-sky-900/60 transition-colors"
-            >
-              <Atom className="w-4 h-4 text-sky-400" />
-              <span>Simular Átomo</span>
-            </button>
-
-            <button
-              onClick={() => onGoToSimulator('electron', element)}
-              className="shrink-0 whitespace-nowrap flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-indigo-950/60 text-indigo-300 border border-indigo-800/60 hover:bg-indigo-900/60 transition-colors"
-            >
-              <Zap className="w-4 h-4 text-indigo-400" />
-              <span>Simular Aufbau (Moeller)</span>
-            </button>
-
-            <button
-              onClick={() => onGoToSimulator('bond', element)}
-              className="shrink-0 whitespace-nowrap flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-rose-950/60 text-rose-300 border border-rose-800/60 hover:bg-rose-900/60 transition-colors"
-            >
-              <Flame className="w-4 h-4 text-rose-400" />
-              <span>Simular Enlace</span>
-            </button>
-
-            <button
-              onClick={() => onGoToSimulator('vsepr', element)}
-              className="shrink-0 whitespace-nowrap flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-emerald-950/60 text-emerald-300 border border-emerald-800/60 hover:bg-emerald-900/60 transition-colors"
-            >
-              <Box className="w-4 h-4 text-emerald-400" />
-              <span>Molécula 3D</span>
-            </button>
-          </div>
-
-          <button
-            onClick={onClose}
-            className="shrink-0 whitespace-nowrap px-4 py-2 rounded-xl text-xs font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white transition-colors"
-          >
-            Cerrar
-          </button>
+        {/* Footer Actions en escritorio/tablet */}
+        <div className="hidden sm:flex shrink-0 p-5 bg-slate-950/90 border-t border-slate-800 flex-wrap items-center justify-between gap-3">
+          {actionButtons}
         </div>
       </div>
     </div>

@@ -78,6 +78,22 @@ export const PeriodicGrid: React.FC<PeriodicGridProps> = ({
     [elements, searchQuery]
   );
 
+  const exactMatchElements = React.useMemo(
+    () =>
+      exactMatchZs.size > 0
+        ? elements.filter(
+            (el) =>
+              exactMatchZs.has(el.atomicNumber) &&
+              matchesElementFilter(
+                el,
+                { selectedCategory, selectedBlock, onlyRadioactive, searchQuery },
+                normalizedQuery
+              )
+          )
+        : [],
+    [elements, exactMatchZs, selectedCategory, selectedBlock, onlyRadioactive, searchQuery, normalizedQuery]
+  );
+
   // ── Desplazamiento horizontal: arrastre con ratón + indicadores de borde ──
   const scrollRef = React.useRef<HTMLDivElement>(null);
   const dragState = React.useRef({ active: false, startX: 0, startScroll: 0, moved: false });
@@ -143,7 +159,8 @@ export const PeriodicGrid: React.FC<PeriodicGridProps> = ({
   const scrollByAmount = (dir: 1 | -1) => {
     const node = scrollRef.current;
     if (!node) return;
-    node.scrollBy({ left: dir * node.clientWidth * 0.6, behavior: 'smooth' });
+    const step = Math.max(240, Math.round(node.clientWidth * 0.75));
+    node.scrollBy({ left: dir * step, behavior: 'smooth' });
   };
 
   // Filter check helper
@@ -278,6 +295,7 @@ export const PeriodicGrid: React.FC<PeriodicGridProps> = ({
         isSelected={isSelected}
         isInComparison={isInComparison}
         isExactMatch={exactMatchZs.has(el.atomicNumber)}
+        hasExactSearchMatch={exactMatchZs.size > 0}
         onSelect={onSelectElement}
         onToggleCompare={onToggleCompare}
         onGridKeyDown={handleCellKeyDown}
@@ -287,6 +305,30 @@ export const PeriodicGrid: React.FC<PeriodicGridProps> = ({
 
   return (
     <div className="w-full select-none space-y-2">
+      {/* Exact match highlight bar when searching in Table view */}
+      {exactMatchElements.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2 px-3 py-2 bg-emerald-950/50 border border-emerald-500/40 rounded-xl text-xs">
+          <span className="font-semibold text-emerald-300 flex items-center gap-1.5">
+            <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-emerald-400 text-slate-950 font-bold text-[10px]">
+              ★
+            </span>
+            Coincidencia exacta:
+          </span>
+          {exactMatchElements.map((el) => (
+            <button
+              key={el.atomicNumber}
+              type="button"
+              onClick={() => onSelectElement(el)}
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-400/50 text-emerald-100 font-semibold transition-colors"
+            >
+              <span className="font-mono font-black text-emerald-300">{el.symbol}</span>
+              <span>{el.name}</span>
+              <span className="text-[10px] font-mono text-emerald-300/80">Z {el.atomicNumber}</span>
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* Mobile hint banner */}
       <div className="lg:hidden flex items-center justify-between gap-2 px-3 py-2 bg-sky-950/60 border border-sky-800/60 rounded-xl text-xs text-sky-200">
         <span className="flex items-center gap-1.5 font-medium">
@@ -304,26 +346,26 @@ export const PeriodicGrid: React.FC<PeriodicGridProps> = ({
       </div>
 
       <div className="relative">
-        {/* Indicadores de desplazamiento lateral */}
+        {/* Indicadores de desplazamiento lateral (z-40 para quedar por encima de celdas en hover/focus) */}
         {canScrollLeft && (
-          <div className="pointer-events-none absolute inset-y-0 left-0 w-10 z-20 bg-gradient-to-r from-slate-950/90 to-transparent flex items-center">
+          <div className="pointer-events-none absolute inset-y-0 left-0 w-11 z-40 bg-gradient-to-r from-slate-950/85 to-transparent flex items-center">
             <button
               type="button"
               onClick={() => scrollByAmount(-1)}
               aria-label="Desplazar la tabla a la izquierda"
-              className="pointer-events-auto ml-0.5 w-7 h-7 rounded-full bg-sky-600 text-white font-bold shadow-lg flex items-center justify-center"
+              className="pointer-events-auto ml-1 w-8 h-8 rounded-full bg-sky-600 hover:bg-sky-500 active:scale-95 text-white font-bold shadow-lg flex items-center justify-center transition-all"
             >
               ‹
             </button>
           </div>
         )}
         {canScrollRight && (
-          <div className="pointer-events-none absolute inset-y-0 right-0 w-10 z-20 bg-gradient-to-l from-slate-950/90 to-transparent flex items-center justify-end">
+          <div className="pointer-events-none absolute inset-y-0 right-0 w-11 z-40 bg-gradient-to-l from-slate-950/85 to-transparent flex items-center justify-end">
             <button
               type="button"
               onClick={() => scrollByAmount(1)}
               aria-label="Desplazar la tabla a la derecha"
-              className="pointer-events-auto mr-0.5 w-7 h-7 rounded-full bg-sky-600 text-white font-bold shadow-lg flex items-center justify-center animate-pulse"
+              className="pointer-events-auto mr-1 w-8 h-8 rounded-full bg-sky-600 hover:bg-sky-500 active:scale-95 text-white font-bold shadow-lg flex items-center justify-center transition-all"
             >
               ›
             </button>
@@ -338,7 +380,7 @@ export const PeriodicGrid: React.FC<PeriodicGridProps> = ({
         onPointerUp={endDrag}
         onPointerCancel={endDrag}
         onClickCapture={handleClickCapture}
-        className="w-full overflow-x-auto overscroll-x-contain pb-6 cursor-grab active:cursor-grabbing lg:cursor-auto"
+        className="w-full overflow-x-auto overscroll-x-contain touch-pan-x touch-pan-y pb-6 cursor-grab active:cursor-grabbing lg:cursor-auto"
         style={{ WebkitOverflowScrolling: 'touch' }}
       >
         <div className="min-w-[1020px] max-w-full mx-auto space-y-4">

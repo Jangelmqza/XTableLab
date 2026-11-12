@@ -537,7 +537,7 @@ export function App() {
           {/* Copyright + version row */}
           <div className="flex flex-col sm:flex-row items-center justify-between w-full gap-2 text-slate-600">
             <span>
-              © 2026{' '}
+              © 2026{'\u00A0'}
               <span className="text-slate-400 font-medium">Jose Angel Márquez Ramírez</span>
               {' '}— Todos los derechos reservados.
             </span>

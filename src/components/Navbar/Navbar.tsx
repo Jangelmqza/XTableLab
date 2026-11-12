@@ -84,7 +84,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   return (
     <header className="sticky top-0 z-40 bg-slate-950/90 border-b border-slate-800/80 backdrop-blur-xl transition-all">
-      <div className="max-w-7xl 2xl:max-w-[1760px] mx-auto px-3 sm:px-6 h-16 flex items-center justify-between gap-3">
+      <div className="max-w-7xl 2xl:max-w-[1800px] mx-auto px-3 sm:px-6 h-16 flex items-center justify-between gap-3">
         {/* Logo and Brand */}
         <div
           role="button"
@@ -118,7 +118,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         {/* Navigation Tabs (escritorio ≥ xl: caben los 7 módulos) */}
         <nav
           aria-label="Módulos principales de XTableLab"
-          className="hidden xl:flex items-center gap-0.5 2xl:gap-1 min-w-0"
+          className="hidden xl:flex items-center gap-0.5 min-[1680px]:gap-1 min-w-0"
         >
           {tabs.map((tab) => {
             const Icon = tab.icon;
@@ -130,15 +130,15 @@ export const Navbar: React.FC<NavbarProps> = ({
                 aria-current={isActive ? 'page' : undefined}
                 aria-label={tab.label}
                 title={tab.label}
-                className={`relative flex items-center gap-1.5 px-2.5 2xl:px-3 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all select-none ${
+                className={`relative flex items-center gap-1.5 px-2.5 min-[1680px]:px-3 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all select-none ${
                   isActive
                     ? 'bg-sky-600 text-white shadow-lg shadow-sky-600/30'
                     : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
                 }`}
               >
                 <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-white' : 'text-slate-400'}`} />
-                <span className="2xl:hidden">{tab.shortLabel}</span>
-                <span className="hidden 2xl:inline">{tab.label}</span>
+                <span className="min-[1680px]:hidden">{tab.shortLabel}</span>
+                <span className="hidden min-[1680px]:inline">{tab.label}</span>
                 {tab.badge !== undefined && (
                   <span className="ml-1 w-4 h-4 rounded-full bg-amber-400 text-slate-950 font-bold text-[10px] flex items-center justify-center shadow">
                     {tab.badge}
