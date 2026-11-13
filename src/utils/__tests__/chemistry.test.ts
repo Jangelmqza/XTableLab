@@ -33,7 +33,7 @@ import {
   calculateAutoLonePairs,
   generateVsepr3DGeometry,
 } from '../vseprEngine';
-import { generateQuestion } from '../../components/Quiz/QuizModule';
+import { generateQuestion } from '../quizGenerator';
 
 const getElementByZ = (z: number) => {
   const el = ELEMENTS_DATA.find((e) => e.atomicNumber === z);

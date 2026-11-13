@@ -55,5 +55,14 @@ export default defineConfig({
   ],
   build: {
     sourcemap: false,
+    rolldownOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('node_modules/three')) {
+            return 'three-vendor';
+          }
+        },
+      },
+    },
   },
 })

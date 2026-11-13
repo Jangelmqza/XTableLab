@@ -3,6 +3,7 @@ import type { ElementData } from '../../types/element';
 import {
   calculateOrbitalBoxes,
   formatConfigurationString,
+  formatElectronConfiguration,
   getAnomalyNote,
 } from '../../utils/electronConfig';
 import { Zap, Play, Pause, SkipForward, RotateCcw, Sparkles, AlertCircle } from 'lucide-react';
@@ -203,7 +204,7 @@ export const ElectronConfigSimulator: React.FC<ElectronConfigSimulatorProps> = (
             <span className="font-bold">{configString}</span>
             {currentElement && (
               <span className="ml-3 text-xs text-indigo-300">
-                ({currentElement.electronConfiguration})
+                ({formatElectronConfiguration(currentElement.electronConfiguration)})
               </span>
             )}
           </div>

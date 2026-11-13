@@ -3,6 +3,7 @@ import type { ElementData } from '../../types/element';
 import { CATEGORY_COLORS } from '../../data/elementsData';
 import { normalizeSearchText } from '../../utils/filters';
 import { classifyBond } from '../../utils/bonds';
+import { formatElectronConfiguration } from '../../utils/electronConfig';
 import { BohrModel } from '../ElementModal/BohrModel';
 import { Scale, Trash2, Zap } from 'lucide-react';
 
@@ -265,7 +266,7 @@ export const ElementComparator: React.FC<ElementComparatorProps> = ({
                     <div className="flex justify-between py-1 border-b border-slate-800/80">
                       <span className="text-slate-400">Configuración:</span>
                       <span className="font-mono text-slate-300 text-[11px] truncate max-w-[150px]">
-                        {el.electronConfiguration}
+                        {formatElectronConfiguration(el.electronConfiguration)}
                       </span>
                     </div>
                     <div className="flex justify-between py-1">

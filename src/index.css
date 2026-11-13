@@ -329,7 +329,8 @@ html.light .ring-offset-slate-950 {
 }
 
 /* Scroll edge fades of the periodic grid */
-html.light .from-slate-950\/90 {
+html.light .from-slate-950\/90,
+html.light .from-slate-950\/85 {
   --tw-gradient-from: rgba(248, 250, 252, 0.95);
 }
 
@@ -346,6 +347,7 @@ html.light .text-violet-400 { color: #6d28d9 !important; }
 html.light .text-sky-200,
 html.light .text-sky-300 { color: #075985 !important; }
 html.light .text-rose-300 { color: #9f1239 !important; }
+html.light .text-emerald-100 { color: #064e3b !important; }
 html.light .text-emerald-300 { color: #065f46 !important; }
 html.light .text-amber-300 { color: #92400e !important; }
 html.light .text-purple-300 { color: #6b21a8 !important; }
@@ -360,7 +362,8 @@ html.light .bg-sky-950\/20 { background-color: #e0f2fe; border-color: #7dd3fc; }
 html.light .bg-rose-950\/60,
 html.light .bg-rose-950\/30 { background-color: #ffe4e6; border-color: #fda4af; }
 html.light .bg-emerald-950\/80,
-html.light .bg-emerald-950\/60 { background-color: #d1fae5; border-color: #6ee7b7; }
+html.light .bg-emerald-950\/60,
+html.light .bg-emerald-950\/50 { background-color: #d1fae5; border-color: #6ee7b7; }
 html.light .bg-amber-950\/60 { background-color: #fef3c7; border-color: #fcd34d; }
 html.light .bg-indigo-950\/60,
 html.light .bg-indigo-950\/20 { background-color: #e0e7ff; border-color: #a5b4fc; }
