@@ -6,8 +6,8 @@ Actualmente se brindan actualizaciones de seguridad para la última versión pub
 
 | Versión | Soportada |
 | ------- | --------- |
-| 1.2.x   | ✅ Sí     |
-| < 1.2.0 | ❌ No     |
+| 2.2.x   | ✅ Sí     |
+| < 2.2.0 | ❌ No     |
 
 ## Reportar una vulnerabilidad
 
