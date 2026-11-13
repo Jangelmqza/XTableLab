@@ -539,7 +539,15 @@ export function App() {
             <span>
               © 2026{'\u00A0'}
               <span className="text-slate-400 font-medium">Jose Angel Márquez Ramírez</span>
-              {' '}— Todos los derechos reservados.
+              {' '}—{' '}
+              <a
+                href="https://github.com/Jangelmqza/XTableLab/blob/main/LICENSE"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-slate-500 hover:text-sky-400 transition-colors underline underline-offset-2"
+              >
+                Licencia MIT
+              </a>
             </span>
 
             {/* Version badge */}
